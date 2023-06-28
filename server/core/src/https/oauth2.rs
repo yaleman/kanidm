@@ -521,6 +521,7 @@ pub async fn oauth2_token_post(mut req: tide::Request<AppState>) -> tide::Result
         .and_then(|h| h.as_str().strip_prefix("Basic "))
         .map(str::to_string);
 
+    // TODO #1787: test this for good/bad
     // Get the accessToken Request
     let tok_req: AccessTokenRequest = req.body_form().await.map_err(|e| {
         error!("atr parse error - {:?}", e);
@@ -596,6 +597,7 @@ pub async fn oauth2_openid_userinfo_get(req: tide::Request<AppState>) -> tide::R
         .and_then(|h| h.as_str().strip_prefix("Bearer "))
         .map(str::to_string)
         .ok_or_else(|| {
+            // TODO #1787 test this
             error!("Bearer Authentication Not Provided");
             tide::Error::from_str(
                 tide::StatusCode::Unauthorized,
@@ -661,6 +663,7 @@ pub async fn oauth2_token_introspect_post(mut req: tide::Request<AppState>) -> t
         .and_then(|h| h.as_str().strip_prefix("Basic "))
         .map(str::to_string)
         .ok_or_else(|| {
+            // TODO: #1787 test this
             error!("Basic Authentication Not Provided");
             tide::Error::from_str(
                 tide::StatusCode::Unauthorized,
@@ -670,6 +673,7 @@ pub async fn oauth2_token_introspect_post(mut req: tide::Request<AppState>) -> t
 
     // Get the introspection request, could we accept json or form? Prob needs content type here.
     let intr_req: AccessTokenIntrospectRequest = req.body_form().await.map_err(|e| {
+        // TODO: #1787 test this
         request_error!("{:?}", e);
         tide::Error::from_str(
             tide::StatusCode::BadRequest,
@@ -718,6 +722,8 @@ pub async fn oauth2_token_introspect_post(mut req: tide::Request<AppState>) -> t
     })
 }
 
+
+// TODO: #1787 test this
 pub async fn oauth2_token_revoke_post(mut req: tide::Request<AppState>) -> tide::Result {
     // This is called directly by the resource server, where we then revoke
     // the token identified by this request.

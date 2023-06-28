@@ -1,5 +1,6 @@
 use kanidm_client::KanidmClient;
 use kanidmd_testkit::ADMIN_TEST_PASSWORD;
+use reqwest::header::HeaderValue;
 
 #[kanidmd_testkit::test]
 async fn test_sync_account_lifecycle(rsclient: KanidmClient) {
@@ -40,4 +41,39 @@ async fn test_sync_account_lifecycle(rsclient: KanidmClient) {
     // Sync state fails.
 
     // Delete account
+}
+
+
+#[kanidmd_testkit::test]
+async fn test_scim_sync_get(rsclient: KanidmClient) {
+    // We need to do manual reqwests here.
+    let addr = rsclient.get_url();
+
+    let mut headers = reqwest::header::HeaderMap::new();
+    headers.insert(
+        reqwest::header::AUTHORIZATION,
+        HeaderValue::from_str(&format!("Bearer {:?}", rsclient.get_token().await)).unwrap(),
+    );
+
+    let client = reqwest::Client::builder()
+        .danger_accept_invalid_certs(true)
+        .default_headers(headers)
+        .build()
+        .unwrap();
+    // here we test the /ui/ endpoint which should have the headers
+    let response = match client.get(format!("{}/scim/v1/Sync", addr)).send().await {
+        Ok(value) => value,
+        Err(error) => {
+            panic!("Failed to query {:?} : {:#?}", addr, error);
+        }
+    };
+    eprintln!("response: {:#?}", response);
+    // assert_eq!(response.status(), 200);
+
+    // eprintln!(
+    //     "csp headers: {:#?}",
+    //     response.headers().get("content-security-policy")
+    // );
+    // assert_ne!(response.headers().get("content-security-policy"), None);
+    // eprintln!("{}", response.text().await.unwrap());
 }
