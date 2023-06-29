@@ -66,6 +66,8 @@ pub extern "C" fn cleanup<T>(_: *const PamHandle, c_data: *mut PamDataT, _: PamR
 
 pub type PamResult<T> = Result<T, PamResultCode>;
 
+/// # Safety
+///
 /// Type-level mapping for safely retrieving values with `get_item`.
 ///
 /// See `pam_get_item` in
@@ -81,6 +83,8 @@ pub trait PamItem {
 }
 
 impl PamHandle {
+    /// # Safety
+    ///
     /// Gets some value, identified by `key`, that has been set by the module
     /// previously.
     ///
