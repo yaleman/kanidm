@@ -2,11 +2,12 @@ use axum::{
     http::{self, Request},
     middleware::Next,
     response::Response,
-    Extension,
+    Extension, TypedHeader,
 };
-use http::{HeaderMap, HeaderValue};
+use headers::authorization::Bearer;
+use headers::Authorization;
+use http::HeaderValue;
 use uuid::Uuid;
-
 pub mod compression;
 
 // the version middleware injects
@@ -34,7 +35,7 @@ pub struct KOpId {
 
 /// This runs at the start of the request, adding an extension with the OperationID
 pub async fn kopid_start<B>(
-    headers: HeaderMap,
+    TypedHeader(auth): TypedHeader<Authorization<Bearer>>,
     mut request: Request<B>,
     next: Next<B>,
 ) -> Response {
@@ -42,17 +43,7 @@ pub async fn kopid_start<B>(
     let eventid = sketching::tracing_forest::id();
     let value = eventid.as_hyphenated().to_string();
 
-    let uat = headers
-        .get("Authorization")
-        .and_then(|hv| {
-            // Get the first header value.
-            hv.to_str().ok()
-        })
-        .and_then(|h| {
-            // Turn it to a &str, and then check the prefix
-            h.strip_prefix("Bearer ")
-        })
-        .map(|s| s.to_string());
+    let uat = Some(auth.token().to_string());
 
     // insert the extension so we can pull it out later
     request.extensions_mut().insert(KOpId {
