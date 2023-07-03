@@ -35,7 +35,8 @@ pub struct KOpId {
 
 /// This runs at the start of the request, adding an extension with the OperationID
 pub async fn kopid_start<B>(
-    TypedHeader(auth): TypedHeader<Authorization<Bearer>>,
+    // TypedHeader(auth): Option<TypedHeader<Authorization<Bearer>>>,
+    auth: Option<TypedHeader<Authorization<Bearer>>>,
     mut request: Request<B>,
     next: Next<B>,
 ) -> Response {
@@ -43,7 +44,12 @@ pub async fn kopid_start<B>(
     let eventid = sketching::tracing_forest::id();
     let value = eventid.as_hyphenated().to_string();
 
-    let uat = Some(auth.token().to_string());
+    let uat = match auth {
+        Some(bearer) => Some(bearer.token().to_string()),
+        _ => Some(String::new()),
+    };
+
+    // let uat = Some(auth.token().to_string());
 
     // insert the extension so we can pull it out later
     request.extensions_mut().insert(KOpId {

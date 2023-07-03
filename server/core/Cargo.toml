@@ -23,6 +23,7 @@ axum-sessions = "0.5.0"
 chrono = { workspace = true }
 compact_jwt = { workspace = true }
 cron = { workspace = true }
+headers = { workspace = true }
 futures-util = { workspace = true }
 http = "0.2.9"
 http-types = { workspace = true }
