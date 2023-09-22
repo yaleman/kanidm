@@ -178,6 +178,21 @@ pub enum Attribute {
     TestNotAllowed,
 }
 
+impl PartialOrd for Attribute {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        let s: &'static str = (*self).into();
+        let o: &'static str = (*other).into();
+        Some(s.cmp(o))
+    }
+}
+impl Ord for Attribute {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        let s: &'static str = (*self).into();
+        let o: &'static str = (*other).into();
+        s.cmp(o)
+    }
+}
+
 impl AsRef<str> for Attribute {
     fn as_ref(&self) -> &str {
         self.into()

@@ -232,7 +232,7 @@ pub trait IdlSqliteTransaction {
         }
     }
 
-    fn exists_idx(&self, attr: &str, itype: IndexType) -> Result<bool, OperationError> {
+    fn exists_idx(&self, attr: Attribute, itype: IndexType) -> Result<bool, OperationError> {
         let tname = format!("idx_{}_{}", itype.as_idx_str(), attr);
         self.exists_table(&tname)
     }
@@ -240,7 +240,7 @@ pub trait IdlSqliteTransaction {
     #[instrument(level = "trace", skip_all)]
     fn get_idl(
         &self,
-        attr: &str,
+        attr: Attribute,
         itype: IndexType,
         idx_key: &str,
     ) -> Result<Option<IDLBitRange>, OperationError> {
@@ -849,7 +849,7 @@ impl IdlSqliteWriteTransaction {
 
     pub fn write_idl(
         &self,
-        attr: &str,
+        attr: Attribute,
         itype: IndexType,
         idx_key: &str,
         idl: &IDLBitRange,
@@ -861,7 +861,7 @@ impl IdlSqliteWriteTransaction {
                 "DELETE FROM {}.idx_{}_{} WHERE key = :key",
                 self.get_db_name(),
                 itype.as_idx_str(),
-                attr
+                attr.as_ref()
             );
 
             self.get_conn()?

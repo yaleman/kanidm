@@ -804,8 +804,11 @@ impl<'a> SchemaWriteTransaction<'a> {
         self.get_attributes()
             .values()
             .flat_map(|a| {
+                let attr = Attribute::try_from(&a.name)
+                    .unwrap_or_else(|_| panic!("Invalid attribute name: {}", a.name));
+
                 a.index.iter().map(move |itype: &IndexType| IdxKey {
-                    attr: a.name.clone(),
+                    attr,
                     itype: *itype,
                 })
             })

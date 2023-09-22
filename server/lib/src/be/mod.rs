@@ -15,7 +15,6 @@ use hashbrown::{HashMap as Map, HashSet};
 use idlset::v2::IDLBitRange;
 use idlset::AndNot;
 use kanidm_proto::v1::{ConsistencyError, OperationError};
-use smartstring::alias::String as AttrString;
 use tracing::{trace, trace_span};
 use uuid::Uuid;
 
@@ -216,10 +215,11 @@ pub trait BackendTransaction {
                     // Get the idx_key
                     let idx_key = value.get_idx_eq_key();
                     // Get the idl for this
-                    match self
-                        .get_idlayer()
-                        .get_idl(attr, IndexType::Equality, &idx_key)?
-                    {
+                    match self.get_idlayer().get_idl(
+                        Attribute::try_from(attr)?,
+                        IndexType::Equality,
+                        &idx_key,
+                    )? {
                         Some(idl) => (
                             IdList::Indexed(idl),
                             FilterPlan::EqIndexed(attr.clone(), idx_key),
@@ -236,10 +236,11 @@ pub trait BackendTransaction {
                     // Get the idx_key
                     let idx_key = subvalue.get_idx_sub_key();
                     // Get the idl for this
-                    match self
-                        .get_idlayer()
-                        .get_idl(attr, IndexType::SubString, &idx_key)?
-                    {
+                    match self.get_idlayer().get_idl(
+                        Attribute::try_from(attr)?,
+                        IndexType::SubString,
+                        &idx_key,
+                    )? {
                         Some(idl) => (
                             IdList::Indexed(idl),
                             FilterPlan::SubIndexed(attr.clone(), idx_key),
@@ -254,7 +255,11 @@ pub trait BackendTransaction {
             FilterResolved::Pres(attr, idx) => {
                 if idx.is_some() {
                     // Get the idl for this
-                    match self.get_idlayer().get_idl(attr, IndexType::Presence, "_")? {
+                    match self.get_idlayer().get_idl(
+                        Attribute::try_from(attr)?,
+                        IndexType::Presence,
+                        "_",
+                    )? {
                         Some(idl) => (IdList::Indexed(idl), FilterPlan::PresIndexed(attr.clone())),
                         None => (IdList::AllIds, FilterPlan::PresCorrupt(attr.clone())),
                     }
@@ -1125,11 +1130,9 @@ impl<'a> BackendWriteTransaction<'a> {
             let ctx_ent_uuid = ctx_ent.get_uuid();
             let idx_key = ctx_ent_uuid.as_hyphenated().to_string();
 
-            let idl = self.get_idlayer().get_idl(
-                Attribute::Uuid.as_ref(),
-                IndexType::Equality,
-                &idx_key,
-            )?;
+            let idl = self
+                .get_idlayer()
+                .get_idl(Attribute::Uuid, IndexType::Equality, &idx_key)?;
 
             let entry = match idl {
                 Some(idl) if idl.is_empty() => {
@@ -1498,7 +1501,7 @@ impl<'a> BackendWriteTransaction<'a> {
                             Some(mut idl) => {
                                 idl.insert_id(e_id);
                                 if cfg!(debug_assertions)
-                                    && attr == Attribute::Uuid.as_ref() && itype == IndexType::Equality {
+                                    && attr == Attribute::Uuid && itype == IndexType::Equality {
                                         trace!("{:?}", idl);
                                         debug_assert!(idl.len() <= 1);
                                 }
@@ -1518,7 +1521,7 @@ impl<'a> BackendWriteTransaction<'a> {
                         match self.idlayer.get_idl(attr, itype, &idx_key)? {
                             Some(mut idl) => {
                                 idl.remove_id(e_id);
-                                if cfg!(debug_assertions) && attr == Attribute::Uuid.as_ref() && itype == IndexType::Equality {
+                                if cfg!(debug_assertions) && attr == Attribute::Uuid && itype == IndexType::Equality {
                                         trace!("{:?}", idl);
                                         debug_assert!(idl.len() <= 1);
                                 }
@@ -1539,7 +1542,7 @@ impl<'a> BackendWriteTransaction<'a> {
     }
 
     #[allow(dead_code)]
-    fn missing_idxs(&mut self) -> Result<Vec<(AttrString, IndexType)>, OperationError> {
+    fn missing_idxs(&mut self) -> Result<Vec<(Attribute, IndexType)>, OperationError> {
         let idx_table_list = self.get_idlayer().list_idxs()?;
 
         // Turn the vec to a real set
@@ -1551,7 +1554,7 @@ impl<'a> BackendWriteTransaction<'a> {
             .keys()
             .filter_map(|ikey| {
                 // what would the table name be?
-                let tname = format!("idx_{}_{}", ikey.itype.as_idx_str(), ikey.attr.as_str());
+                let tname = format!("idx_{}_{}", ikey.itype.as_idx_str(), ikey.attr);
                 trace!("Checking for {}", tname);
 
                 if idx_table_set.contains(&tname) {
@@ -1578,10 +1581,10 @@ impl<'a> BackendWriteTransaction<'a> {
         trace!("Creating index -> uuid2rdn");
         self.idlayer.create_uuid2rdn()?;
 
-        self.idxmeta_wr.idxkeys.keys().try_for_each(|ikey| {
-            let attr: Attribute = (&ikey.attr).try_into()?;
-            self.idlayer.create_idx(attr, ikey.itype)
-        })
+        self.idxmeta_wr
+            .idxkeys
+            .keys()
+            .try_for_each(|ikey| self.idlayer.create_idx(ikey.attr, ikey.itype))
     }
 
     pub fn upgrade_reindex(&mut self, v: i64) -> Result<(), OperationError> {
@@ -1667,7 +1670,7 @@ impl<'a> BackendWriteTransaction<'a> {
     #[cfg(test)]
     pub fn load_test_idl(
         &mut self,
-        attr: &String,
+        attr: Attribute,
         itype: IndexType,
         idx_key: &String,
     ) -> Result<Option<IDLBitRange>, OperationError> {
@@ -1883,11 +1886,11 @@ impl<'a> BackendWriteTransaction<'a> {
 // exist. We return these when the analysis has not been run, as
 // these are values that are generally "good enough" for most applications
 fn get_idx_slope_default(ikey: &IdxKey) -> IdxSlope {
-    match (ikey.attr.as_str(), &ikey.itype) {
-        (ATTR_NAME, IndexType::Equality)
-        | (ATTR_SPN, IndexType::Equality)
-        | (ATTR_UUID, IndexType::Equality) => 1,
-        (ATTR_CLASS, IndexType::Equality) => 180,
+    match (ikey.attr, &ikey.itype) {
+        (Attribute::Name, IndexType::Equality)
+        | (Attribute::Spn, IndexType::Equality)
+        | (Attribute::Uuid, IndexType::Equality) => 1,
+        (Attribute::Class, IndexType::Equality) => 180,
         (_, IndexType::Equality) => 45,
         (_, IndexType::SubString) => 90,
         (_, IndexType::Presence) => 90,
@@ -2121,7 +2124,7 @@ mod tests {
     macro_rules! idl_state {
         ($be:expr, $attr:expr, $itype:expr, $idx_key:expr, $expect:expr) => {{
             let t_idl = $be
-                .load_test_idl(&$attr.to_string(), $itype, &$idx_key.to_string())
+                .load_test_idl($attr, $itype, &$idx_key.to_string())
                 .expect("IdList Load failed");
             let t = $expect.map(|v: Vec<u64>| IDLBitRange::from_iter(v));
             assert_eq!(t_idl, t);
@@ -2577,7 +2580,7 @@ mod tests {
 
             idl_state!(
                 be,
-                Attribute::Name.as_ref(),
+                Attribute::Name,
                 IndexType::Equality,
                 "william",
                 Some(vec![1])
@@ -2585,7 +2588,7 @@ mod tests {
 
             idl_state!(
                 be,
-                Attribute::Name.as_ref(),
+                Attribute::Name,
                 IndexType::Equality,
                 "claire",
                 Some(vec![2])
@@ -2593,7 +2596,7 @@ mod tests {
 
             idl_state!(
                 be,
-                Attribute::Name.as_ref(),
+                Attribute::Name,
                 IndexType::Presence,
                 "_",
                 Some(vec![1, 2])
@@ -2601,7 +2604,7 @@ mod tests {
 
             idl_state!(
                 be,
-                Attribute::Uuid.as_ref(),
+                Attribute::Uuid,
                 IndexType::Equality,
                 "db237e8a-0079-4b8c-8a56-593b22aa44d1",
                 Some(vec![1])
@@ -2609,7 +2612,7 @@ mod tests {
 
             idl_state!(
                 be,
-                Attribute::Uuid.as_ref(),
+                Attribute::Uuid,
                 IndexType::Equality,
                 "bd651620-00dd-426b-aaa0-4494f7b7906f",
                 Some(vec![2])
@@ -2617,7 +2620,7 @@ mod tests {
 
             idl_state!(
                 be,
-                Attribute::Uuid.as_ref(),
+                Attribute::Uuid,
                 IndexType::Presence,
                 "_",
                 Some(vec![1, 2])
@@ -2627,7 +2630,7 @@ mod tests {
 
             idl_state!(
                 be,
-                Attribute::Name.as_ref(),
+                Attribute::Name,
                 IndexType::Equality,
                 "not-exist",
                 Some(Vec::new())
@@ -2635,18 +2638,14 @@ mod tests {
 
             idl_state!(
                 be,
-                Attribute::Uuid.as_ref(),
+                Attribute::Uuid,
                 IndexType::Equality,
                 "fake-0079-4b8c-8a56-593b22aa44d1",
                 Some(Vec::new())
             );
 
             let uuid_p_idl = be
-                .load_test_idl(
-                    &"not_indexed".to_string(),
-                    IndexType::Presence,
-                    &"_".to_string(),
-                )
+                .load_test_idl(Attribute::NoIndex, IndexType::Presence, &"_".to_string())
                 .unwrap(); // unwrap the result
             assert_eq!(uuid_p_idl, None);
 
@@ -2687,35 +2686,23 @@ mod tests {
 
             idl_state!(
                 be,
-                Attribute::Name.as_ref(),
+                Attribute::Name,
                 IndexType::Equality,
                 "william",
                 Some(vec![1])
             );
 
-            idl_state!(
-                be,
-                Attribute::Name.as_ref(),
-                IndexType::Presence,
-                "_",
-                Some(vec![1])
-            );
+            idl_state!(be, Attribute::Name, IndexType::Presence, "_", Some(vec![1]));
 
             idl_state!(
                 be,
-                Attribute::Uuid.as_ref(),
+                Attribute::Uuid,
                 IndexType::Equality,
                 "db237e8a-0079-4b8c-8a56-593b22aa44d1",
                 Some(vec![1])
             );
 
-            idl_state!(
-                be,
-                Attribute::Uuid.as_ref(),
-                IndexType::Presence,
-                "_",
-                Some(vec![1])
-            );
+            idl_state!(be, Attribute::Uuid, IndexType::Presence, "_", Some(vec![1]));
 
             let william_uuid = uuid!("db237e8a-0079-4b8c-8a56-593b22aa44d1");
             assert!(be.name2uuid("william") == Ok(Some(william_uuid)));
@@ -2729,7 +2716,7 @@ mod tests {
 
             idl_state!(
                 be,
-                Attribute::Name.as_ref(),
+                Attribute::Name,
                 IndexType::Equality,
                 "william",
                 Some(Vec::new())
@@ -2737,7 +2724,7 @@ mod tests {
 
             idl_state!(
                 be,
-                Attribute::Name.as_ref(),
+                Attribute::Name,
                 IndexType::Presence,
                 "_",
                 Some(Vec::new())
@@ -2745,7 +2732,7 @@ mod tests {
 
             idl_state!(
                 be,
-                Attribute::Uuid.as_ref(),
+                Attribute::Uuid,
                 IndexType::Equality,
                 "db237e8a-0079-4b8c-8a56-593b22aa44d1",
                 Some(Vec::new())
@@ -2753,7 +2740,7 @@ mod tests {
 
             idl_state!(
                 be,
-                Attribute::Uuid.as_ref(),
+                Attribute::Uuid,
                 IndexType::Presence,
                 "_",
                 Some(Vec::new())
@@ -2811,35 +2798,23 @@ mod tests {
 
             idl_state!(
                 be,
-                Attribute::Name.as_ref(),
+                Attribute::Name,
                 IndexType::Equality,
                 "claire",
                 Some(vec![2])
             );
 
-            idl_state!(
-                be,
-                Attribute::Name.as_ref(),
-                IndexType::Presence,
-                "_",
-                Some(vec![2])
-            );
+            idl_state!(be, Attribute::Name, IndexType::Presence, "_", Some(vec![2]));
 
             idl_state!(
                 be,
-                Attribute::Uuid.as_ref(),
+                Attribute::Uuid,
                 IndexType::Equality,
                 "bd651620-00dd-426b-aaa0-4494f7b7906f",
                 Some(vec![2])
             );
 
-            idl_state!(
-                be,
-                Attribute::Uuid.as_ref(),
-                IndexType::Presence,
-                "_",
-                Some(vec![2])
-            );
+            idl_state!(be, Attribute::Uuid, IndexType::Presence, "_", Some(vec![2]));
 
             let claire_uuid = uuid!("bd651620-00dd-426b-aaa0-4494f7b7906f");
             let william_uuid = uuid!("db237e8a-0079-4b8c-8a56-593b22aa44d1");
@@ -2896,23 +2871,17 @@ mod tests {
             // Now check the idls
             idl_state!(
                 be,
-                Attribute::Name.as_ref(),
+                Attribute::Name,
                 IndexType::Equality,
                 "claire",
                 Some(vec![1])
             );
 
-            idl_state!(
-                be,
-                Attribute::Name.as_ref(),
-                IndexType::Presence,
-                "_",
-                Some(vec![1])
-            );
+            idl_state!(be, Attribute::Name, IndexType::Presence, "_", Some(vec![1]));
 
             idl_state!(
                 be,
-                Attribute::TestNumber.as_ref(),
+                Attribute::TestNumber,
                 IndexType::Equality,
                 "test",
                 Some(vec![1])
@@ -2966,7 +2935,7 @@ mod tests {
 
             idl_state!(
                 be,
-                Attribute::Name.as_ref(),
+                Attribute::Name,
                 IndexType::Equality,
                 "claire",
                 Some(vec![1])
@@ -2974,37 +2943,25 @@ mod tests {
 
             idl_state!(
                 be,
-                Attribute::Uuid.as_ref(),
+                Attribute::Uuid,
                 IndexType::Equality,
                 "04091a7a-6ce4-42d2-abf5-c2ce244ac9e8",
                 Some(vec![1])
             );
 
-            idl_state!(
-                be,
-                Attribute::Name.as_ref(),
-                IndexType::Presence,
-                "_",
-                Some(vec![1])
-            );
-            idl_state!(
-                be,
-                Attribute::Uuid.as_ref(),
-                IndexType::Presence,
-                "_",
-                Some(vec![1])
-            );
+            idl_state!(be, Attribute::Name, IndexType::Presence, "_", Some(vec![1]));
+            idl_state!(be, Attribute::Uuid, IndexType::Presence, "_", Some(vec![1]));
 
             idl_state!(
                 be,
-                Attribute::Uuid.as_ref(),
+                Attribute::Uuid,
                 IndexType::Equality,
                 "db237e8a-0079-4b8c-8a56-593b22aa44d1",
                 Some(Vec::new())
             );
             idl_state!(
                 be,
-                Attribute::Name.as_ref(),
+                Attribute::Name,
                 IndexType::Equality,
                 "william",
                 Some(Vec::new())

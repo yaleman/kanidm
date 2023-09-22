@@ -2,8 +2,6 @@ use std::borrow::Borrow;
 use std::cmp::Ordering;
 use std::hash::{Hash, Hasher};
 
-use smartstring::alias::String as AttrString;
-
 use crate::prelude::entries::Attribute;
 use crate::value::IndexType;
 
@@ -13,7 +11,7 @@ pub type IdxSlope = u8;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct IdxKey {
-    pub attr: AttrString,
+    pub attr: Attribute,
     pub itype: IndexType,
 }
 
@@ -28,12 +26,12 @@ impl IdxKey {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct IdxKeyRef<'a> {
-    pub attr: &'a str,
+    pub attr: Attribute,
     pub itype: &'a IndexType,
 }
 
 impl<'a> IdxKeyRef<'a> {
-    pub fn new(attr: &'a str, itype: &'a IndexType) -> Self {
+    pub fn new(attr: Attribute, itype: &'a IndexType) -> Self {
         IdxKeyRef { attr, itype }
     }
 
@@ -59,7 +57,7 @@ impl<'a> IdxKeyToRef for IdxKeyRef<'a> {
 impl IdxKeyToRef for IdxKey {
     fn keyref(&self) -> IdxKeyRef<'_> {
         IdxKeyRef {
-            attr: self.attr.as_str(),
+            attr: self.attr,
             itype: &self.itype,
         }
     }
@@ -89,14 +87,14 @@ impl<'a> Hash for (dyn IdxKeyToRef + 'a) {
 
 #[derive(Debug, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
 pub struct IdlCacheKey {
-    pub a: AttrString,
+    pub a: Attribute,
     pub i: IndexType,
     pub k: String,
 }
 
 #[derive(Debug, Clone, Copy, Ord, PartialOrd, Eq, PartialEq, Hash)]
 pub struct IdlCacheKeyRef<'a> {
-    pub a: &'a str,
+    pub a: Attribute,
     pub i: IndexType,
     pub k: &'a str,
 }
@@ -123,7 +121,7 @@ impl<'a> IdlCacheKeyToRef for IdlCacheKeyRef<'a> {
 impl IdlCacheKeyToRef for IdlCacheKey {
     fn keyref(&self) -> IdlCacheKeyRef<'_> {
         IdlCacheKeyRef {
-            a: self.a.as_str(),
+            a: self.a,
             i: self.i,
             k: self.k.as_str(),
         }

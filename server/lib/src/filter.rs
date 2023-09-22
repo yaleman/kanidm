@@ -1061,7 +1061,8 @@ impl FilterResolved {
     ) -> Option<Self> {
         match fc {
             FilterComp::Eq(a, v) => {
-                let idxkref = IdxKeyRef::new(&a, &IndexType::Equality);
+                let attr = Attribute::try_from(&a).ok()?;
+                let idxkref = IdxKeyRef::new(attr, &IndexType::Equality);
                 let idx = idxmeta
                     .get(&idxkref as &dyn IdxKeyToRef)
                     .copied()
@@ -1069,7 +1070,7 @@ impl FilterResolved {
                 Some(FilterResolved::Eq(a, v, idx))
             }
             FilterComp::SelfUuid => ev.get_uuid().map(|uuid| {
-                let idxkref = IdxKeyRef::new(Attribute::Uuid.as_ref(), &IndexType::Equality);
+                let idxkref = IdxKeyRef::new(Attribute::Uuid, &IndexType::Equality);
                 let idx = idxmeta
                     .get(&idxkref as &dyn IdxKeyToRef)
                     .copied()
@@ -1077,7 +1078,8 @@ impl FilterResolved {
                 FilterResolved::Eq(Attribute::Uuid.into(), PartialValue::Uuid(uuid), idx)
             }),
             FilterComp::Sub(a, v) => {
-                let idxkref = IdxKeyRef::new(&a, &IndexType::SubString);
+                let attr = Attribute::try_from(&a).ok()?;
+                let idxkref = IdxKeyRef::new(attr, &IndexType::SubString);
                 let idx = idxmeta
                     .get(&idxkref as &dyn IdxKeyToRef)
                     .copied()
@@ -1085,7 +1087,8 @@ impl FilterResolved {
                 Some(FilterResolved::Sub(a, v, idx))
             }
             FilterComp::Pres(a) => {
-                let idxkref = IdxKeyRef::new(&a, &IndexType::Presence);
+                let attr = Attribute::try_from(&a).ok()?;
+                let idxkref = IdxKeyRef::new(attr, &IndexType::Presence);
                 let idx = idxmeta
                     .get(&idxkref as &dyn IdxKeyToRef)
                     .copied()
@@ -1093,8 +1096,9 @@ impl FilterResolved {
                 Some(FilterResolved::Pres(a, idx))
             }
             FilterComp::LessThan(a, v) => {
+                let attr = Attribute::try_from(&a).ok()?;
                 // let idx = idxmeta.contains(&(&a, &IndexType::SubString));
-                Some(FilterResolved::LessThan(a, v, None))
+                Some(FilterResolved::LessThan(attr.into(), v, None))
             }
             // We set the compound filters slope factor to "None" here, because when we do
             // optimise we'll actually fill in the correct slope factors after we sort those

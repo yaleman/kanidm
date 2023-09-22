@@ -195,7 +195,7 @@ macro_rules! get_idl {
         let db_r = $self.db.get_idl($attr, $itype, $idx_key)?;
         if let Some(ref idl) = db_r {
             let ncache_key = IdlCacheKey {
-                a: $attr.into(),
+                a: $attr,
                 i: $itype.clone(),
                 k: $idx_key.into(),
             };
@@ -338,11 +338,11 @@ pub trait IdlArcSqliteTransaction {
 
     fn get_identry_raw(&self, idl: &IdList) -> Result<Vec<IdRawEntry>, OperationError>;
 
-    fn exists_idx(&mut self, attr: &str, itype: IndexType) -> Result<bool, OperationError>;
+    fn exists_idx(&mut self, attr: Attribute, itype: IndexType) -> Result<bool, OperationError>;
 
     fn get_idl(
         &mut self,
-        attr: &str,
+        attr: Attribute,
         itype: IndexType,
         idx_key: &str,
     ) -> Result<Option<IDLBitRange>, OperationError>;
@@ -391,14 +391,14 @@ impl<'a> IdlArcSqliteTransaction for IdlArcSqliteReadTransaction<'a> {
         get_identry_raw!(self, idl)
     }
 
-    fn exists_idx(&mut self, attr: &str, itype: IndexType) -> Result<bool, OperationError> {
+    fn exists_idx(&mut self, attr: Attribute, itype: IndexType) -> Result<bool, OperationError> {
         exists_idx!(self, attr, itype)
     }
 
     #[instrument(level = "trace", skip_all)]
     fn get_idl(
         &mut self,
-        attr: &str,
+        attr: Attribute,
         itype: IndexType,
         idx_key: &str,
     ) -> Result<Option<IDLBitRange>, OperationError> {
@@ -482,14 +482,14 @@ impl<'a> IdlArcSqliteTransaction for IdlArcSqliteWriteTransaction<'a> {
         get_identry_raw!(self, idl)
     }
 
-    fn exists_idx(&mut self, attr: &str, itype: IndexType) -> Result<bool, OperationError> {
+    fn exists_idx(&mut self, attr: Attribute, itype: IndexType) -> Result<bool, OperationError> {
         exists_idx!(self, attr, itype)
     }
 
     #[instrument(level = "trace", skip_all)]
     fn get_idl(
         &mut self,
-        attr: &str,
+        attr: Attribute,
         itype: IndexType,
         idx_key: &str,
     ) -> Result<Option<IDLBitRange>, OperationError> {
@@ -611,7 +611,7 @@ impl<'a> IdlArcSqliteWriteTransaction<'a> {
             .iter_mut_mark_clean()
             .try_for_each(|(k, v)| {
                 match v {
-                    Some(idl) => db.write_idl(k.a.as_str(), k.i, k.k.as_str(), idl),
+                    Some(idl) => db.write_idl(k.a, k.i, k.k.as_str(), idl),
                     #[allow(clippy::unreachable)]
                     None => {
                         // Due to how we remove items, we always write an empty idl
@@ -727,13 +727,13 @@ impl<'a> IdlArcSqliteWriteTransaction<'a> {
 
     pub fn write_idl(
         &mut self,
-        attr: &str,
+        attr: Attribute,
         itype: IndexType,
         idx_key: &str,
         idl: &IDLBitRange,
     ) -> Result<(), OperationError> {
         let cache_key = IdlCacheKey {
-            a: attr.into(),
+            a: attr,
             i: itype,
             k: idx_key.into(),
         };
@@ -823,7 +823,7 @@ impl<'a> IdlArcSqliteWriteTransaction<'a> {
                 // Convert to something we can use.
                 let idl_len = f64::from(idl_len);
 
-                let kref = IdxKeyRef::new(&k.a, &k.i);
+                let kref = IdxKeyRef::new(k.a, &k.i);
                 if idl_len > 0.0 {
                     // It's worth looking at. Anything len 0 will be removed.
                     if let Some(lens) = data.get_mut(&kref as &dyn IdxKeyToRef) {

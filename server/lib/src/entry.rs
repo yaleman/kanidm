@@ -1306,8 +1306,7 @@ impl Entry<EntrySealed, EntryNew> {
     }
 }
 
-type IdxDiff<'a> =
-    Vec<Result<(&'a AttrString, IndexType, String), (&'a AttrString, IndexType, String)>>;
+type IdxDiff<'a> = Vec<Result<(Attribute, IndexType, String), (Attribute, IndexType, String)>>;
 
 impl<VALID> Entry<VALID, EntryCommitted> {
     /// If this entry has ever been committed to disk, retrieve it's database id number.
@@ -1605,18 +1604,7 @@ impl Entry<EntrySealed, EntryCommitted> {
                 idxmeta
                     .keys()
                     .flat_map(|ikey| {
-                        let attr: Attribute = match Attribute::try_from(ikey.attr.as_str()) {
-                            Ok(val) => val,
-                            Err(err) => {
-                                admin_error!(
-                                    "Failed to convert '{}' to attribute: {:?}",
-                                    ikey.attr,
-                                    err
-                                );
-                                return Vec::new();
-                            }
-                        };
-                        match pre_e.get_ava_set(attr) {
+                        match pre_e.get_ava_set(ikey.attr) {
                             None => Vec::new(),
                             Some(vs) => {
                                 let changes: Vec<Result<_, _>> = match ikey.itype {
@@ -1624,11 +1612,11 @@ impl Entry<EntrySealed, EntryCommitted> {
                                         // We generate these keys out of the valueset now.
                                         vs.generate_idx_eq_keys()
                                             .into_iter()
-                                            .map(|idx_key| Err((&ikey.attr, ikey.itype, idx_key)))
+                                            .map(|idx_key| Err((ikey.attr, ikey.itype, idx_key)))
                                             .collect()
                                     }
                                     IndexType::Presence => {
-                                        vec![Err((&ikey.attr, ikey.itype, "_".to_string()))]
+                                        vec![Err((ikey.attr, ikey.itype, "_".to_string()))]
                                     }
                                     IndexType::SubString => Vec::new(),
                                 };
@@ -1643,28 +1631,17 @@ impl Entry<EntrySealed, EntryCommitted> {
                 idxmeta
                     .keys()
                     .flat_map(|ikey| {
-                        let attr: Attribute = match Attribute::try_from(ikey.attr.as_str()) {
-                            Ok(val) => val,
-                            Err(err) => {
-                                admin_error!(
-                                    "Failed to convert '{}' to attribute: {:?}",
-                                    ikey.attr,
-                                    err
-                                );
-                                return Vec::new();
-                            }
-                        };
-                        match post_e.get_ava_set(attr) {
+                        match post_e.get_ava_set(ikey.attr) {
                             None => Vec::new(),
                             Some(vs) => {
                                 let changes: Vec<Result<_, _>> = match ikey.itype {
                                     IndexType::Equality => vs
                                         .generate_idx_eq_keys()
                                         .into_iter()
-                                        .map(|idx_key| Ok((&ikey.attr, ikey.itype, idx_key)))
+                                        .map(|idx_key| Ok((ikey.attr, ikey.itype, idx_key)))
                                         .collect(),
                                     IndexType::Presence => {
-                                        vec![Ok((&ikey.attr, ikey.itype, "_".to_string()))]
+                                        vec![Ok((ikey.attr, ikey.itype, "_".to_string()))]
                                     }
                                     IndexType::SubString => Vec::new(),
                                 };
@@ -1681,18 +1658,7 @@ impl Entry<EntrySealed, EntryCommitted> {
                 idxmeta
                     .keys()
                     .flat_map(|ikey| {
-                        let attr: Attribute = match Attribute::try_from(ikey.attr.as_str()) {
-                            Ok(val) => val,
-                            Err(err) => {
-                                admin_error!(
-                                    "Failed to convert '{}' to attribute: {:?}",
-                                    ikey.attr,
-                                    err
-                                );
-                                return Vec::new();
-                            }
-                        };
-                        match (pre_e.get_ava_set(attr), post_e.get_ava_set(attr)) {
+                        match (pre_e.get_ava_set(ikey.attr), post_e.get_ava_set(ikey.attr)) {
                             (None, None) => {
                                 // Neither have it, do nothing.
                                 Vec::new()
@@ -1706,11 +1672,11 @@ impl Entry<EntrySealed, EntryCommitted> {
                                         pre_vs
                                             .generate_idx_eq_keys()
                                             .into_iter()
-                                            .map(|idx_key| Err((&ikey.attr, ikey.itype, idx_key)))
+                                            .map(|idx_key| Err((ikey.attr, ikey.itype, idx_key)))
                                             .collect()
                                     }
                                     IndexType::Presence => {
-                                        vec![Err((&ikey.attr, ikey.itype, "_".to_string()))]
+                                        vec![Err((ikey.attr, ikey.itype, "_".to_string()))]
                                     }
                                     IndexType::SubString => Vec::new(),
                                 };
@@ -1725,11 +1691,11 @@ impl Entry<EntrySealed, EntryCommitted> {
                                         post_vs
                                             .generate_idx_eq_keys()
                                             .into_iter()
-                                            .map(|idx_key| Ok((&ikey.attr, ikey.itype, idx_key)))
+                                            .map(|idx_key| Ok((ikey.attr, ikey.itype, idx_key)))
                                             .collect()
                                     }
                                     IndexType::Presence => {
-                                        vec![Ok((&ikey.attr, ikey.itype, "_".to_string()))]
+                                        vec![Ok((ikey.attr, ikey.itype, "_".to_string()))]
                                     }
                                     IndexType::SubString => Vec::new(),
                                 };
@@ -1799,11 +1765,11 @@ impl Entry<EntrySealed, EntryCommitted> {
                                     IndexType::Equality => {
                                         removed_vs
                                             .into_iter()
-                                            .map(|idx_key| Err((&ikey.attr, ikey.itype, idx_key)))
+                                            .map(|idx_key| Err((ikey.attr, ikey.itype, idx_key)))
                                             .for_each(|v| diff.push(v));
                                         added_vs
                                             .into_iter()
-                                            .map(|idx_key| Ok((&ikey.attr, ikey.itype, idx_key)))
+                                            .map(|idx_key| Ok((ikey.attr, ikey.itype, idx_key)))
                                             .for_each(|v| diff.push(v));
                                     }
                                     IndexType::Presence => {
@@ -3546,19 +3512,12 @@ mod tests {
         assert!(
             del_r[0]
                 == Err((
-                    &Attribute::UserId.into(),
+                    Attribute::UserId,
                     IndexType::Equality,
                     "william".to_string()
                 ))
         );
-        assert!(
-            del_r[1]
-                == Err((
-                    &Attribute::UserId.into(),
-                    IndexType::Presence,
-                    "_".to_string()
-                ))
-        );
+        assert!(del_r[1] == Err((Attribute::UserId, IndexType::Presence, "_".to_string())));
 
         // Check generating an add diff
         let mut add_r = Entry::idx_diff(&idxmeta, None, Some(&e1));
@@ -3567,19 +3526,12 @@ mod tests {
         assert!(
             add_r[0]
                 == Ok((
-                    &Attribute::UserId.into(),
+                    Attribute::UserId,
                     IndexType::Equality,
                     "william".to_string()
                 ))
         );
-        assert!(
-            add_r[1]
-                == Ok((
-                    &Attribute::UserId.into(),
-                    IndexType::Presence,
-                    "_".to_string()
-                ))
-        );
+        assert!(add_r[1] == Ok((Attribute::UserId, IndexType::Presence, "_".to_string())));
 
         // Check the mod cases now
 
@@ -3589,25 +3541,11 @@ mod tests {
 
         // Check "adding" an attribute.
         let add_a_r = Entry::idx_diff(&idxmeta, Some(&e1), Some(&e1_mod));
-        assert!(
-            add_a_r[0]
-                == Ok((
-                    &Attribute::Extra.into(),
-                    IndexType::Equality,
-                    "test".to_string()
-                ))
-        );
+        assert!(add_a_r[0] == Ok((Attribute::Extra, IndexType::Equality, "test".to_string())));
 
         // Check "removing" an attribute.
         let del_a_r = Entry::idx_diff(&idxmeta, Some(&e1_mod), Some(&e1));
-        assert!(
-            del_a_r[0]
-                == Err((
-                    &Attribute::Extra.into(),
-                    IndexType::Equality,
-                    "test".to_string()
-                ))
-        );
+        assert!(del_a_r[0] == Err((Attribute::Extra, IndexType::Equality, "test".to_string())));
 
         // Change an attribute.
         let mut chg_r = Entry::idx_diff(&idxmeta, Some(&e1), Some(&e2));
@@ -3616,20 +3554,13 @@ mod tests {
         assert!(
             chg_r[1]
                 == Err((
-                    &Attribute::UserId.into(),
+                    Attribute::UserId,
                     IndexType::Equality,
                     "william".to_string()
                 ))
         );
 
-        assert!(
-            chg_r[0]
-                == Ok((
-                    &Attribute::UserId.into(),
-                    IndexType::Equality,
-                    "claire".to_string()
-                ))
-        );
+        assert!(chg_r[0] == Ok((Attribute::UserId, IndexType::Equality, "claire".to_string())));
     }
 
     #[test]
