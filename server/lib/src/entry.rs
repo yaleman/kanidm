@@ -1863,14 +1863,14 @@ impl Entry<EntrySealed, EntryCommitted> {
     /// all other values that are NOT allowed in this query.
     pub fn reduce_attributes(
         &self,
-        allowed_attrs: &BTreeSet<&str>,
+        allowed_attrs: &BTreeSet<Attribute>,
     ) -> Entry<EntryReduced, EntryCommitted> {
         // Remove all attrs from our tree that are NOT in the allowed set.
         let f_attrs: Map<_, _> = self
             .attrs
             .iter()
             .filter_map(|(k, v)| {
-                if allowed_attrs.contains(k.as_str()) {
+                if allowed_attrs.contains(&Attribute::try_from(k.as_str()).ok()?) {
                     Some((k.clone(), v.clone()))
                 } else {
                     None

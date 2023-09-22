@@ -305,6 +305,10 @@ pub trait AccessControlsTransaction<'a> {
                         if reduced_attrs.is_empty() {
                             None
                         } else {
+                            let reduced_attrs: BTreeSet<Attribute> = reduced_attrs
+                                .into_iter()
+                                .filter_map(|s| s.try_into().ok())
+                                .collect();
                             Some(e.reduce_attributes(&reduced_attrs))
                         }
                     }
