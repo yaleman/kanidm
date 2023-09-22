@@ -990,7 +990,7 @@ pub async fn account_delete_id_unix_credential(
         .handle_purgeattribute(
             kopid.uat,
             id,
-            "unix_password".to_string(),
+            Attribute::UnixPassword.to_string(),
             filter,
             kopid.eventid,
         )
