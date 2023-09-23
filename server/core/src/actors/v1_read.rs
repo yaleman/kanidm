@@ -233,7 +233,7 @@ impl QueryServerReadV1 {
             idms_prox_read
                 .qs_read
                 .get_be_txn()
-                .backup(&dest_file)
+                .write_backup_to_file(&dest_file)
                 .map(|()| {
                     info!("Online backup created {} successfully", dest_file);
                 })

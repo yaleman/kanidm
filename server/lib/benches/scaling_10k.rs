@@ -4,18 +4,40 @@ use criterion::{
     criterion_group, criterion_main, BenchmarkId, Criterion, SamplingMode, Throughput,
 };
 
+// use kanidmd_lib::be::dbentry::DbBackup;
+use kanidmd_lib::be::BackendTransaction;
 use kanidmd_lib::entry::{Entry, EntryInit, EntryNew};
 use kanidmd_lib::entry_init;
 use kanidmd_lib::prelude::{Attribute, EntryClass};
+use kanidmd_lib::server::QueryServerTransaction;
+use kanidmd_lib::testkit::{build_the_schema, setup_idm_scaling_test};
 use kanidmd_lib::utils::duration_from_epoch_now;
 use kanidmd_lib::value::Value;
 
 pub fn scaling_user_create_single(c: &mut Criterion) {
+    let co = (Attribute::Class, EntryClass::Object.to_value());
+    let cp = (Attribute::Class, EntryClass::Person.to_value());
+    let ca = (Attribute::Class, EntryClass::Account.to_value());
+    let cd = (Attribute::Description, Value::new_utf8s("criterion"));
+
     let mut group = c.benchmark_group("user_create_single");
     group.sample_size(10);
     group.sampling_mode(SamplingMode::Flat);
     group.warm_up_time(Duration::from_secs(5));
     group.measurement_time(Duration::from_secs(120));
+    let rt = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .expect("oh no I couldn't make a runtime");
+    let backup = rt.block_on(async {
+        // build a "proper" versino of the schema/database
+        let qs = build_the_schema().await;
+        let mut qs_read = qs.read().await;
+        let be_txn = qs_read.get_be_txn();
+        be_txn.get_backup().unwrap()
+    });
+
+    drop(rt);
 
     for size in &[100, 250, 500, 1000, 1500, 2000, 5000, 10000] {
         group.throughput(Throughput::Elements(*size));
@@ -28,11 +50,12 @@ pub fn scaling_user_create_single(c: &mut Criterion) {
                     let mut rt = tokio::runtime::Builder::new_current_thread();
                     elapsed = rt
                         .enable_all()
+                        .worker_threads(4)
                         .build()
                         .expect("Failed building the Runtime")
                         .block_on(async {
                             let (idms, _idms_delayed, _idms_audit) =
-                                kanidmd_lib::testkit::setup_idm_test().await;
+                                setup_idm_scaling_test(&backup).await;
 
                             let ct = duration_from_epoch_now();
                             let start = Instant::now();
@@ -40,16 +63,19 @@ pub fn scaling_user_create_single(c: &mut Criterion) {
                                 let mut idms_prox_write = idms.proxy_write(ct).await;
                                 let name = format!("testperson_{counter}");
                                 let e1 = entry_init!(
-                                    (Attribute::Class, EntryClass::Object.to_value()),
-                                    (Attribute::Class, EntryClass::Person.to_value()),
-                                    (Attribute::Class, EntryClass::Account.to_value()),
+                                    co.clone(),
+                                    cp.clone(),
+                                    ca.clone(),
                                     (Attribute::Name, Value::new_iname(&name)),
-                                    (Attribute::Description, Value::new_utf8s("criterion")),
-                                    (Attribute::DisplayName, Value::new_utf8s(&name))
+                                    (Attribute::DisplayName, Value::new_utf8s(&name)),
+                                    cd.clone()
                                 );
 
-                                let cr = idms_prox_write.qs_write.internal_create(vec![e1]);
-                                assert!(cr.is_ok());
+                                let cr = idms_prox_write.qs_write.internal_create(vec![e1.into()]);
+                                if let Err(err) = cr {
+                                    panic!("Something failed in the create: {:?}", err);
+                                }
+                                // assert!(cr.is_ok());
 
                                 idms_prox_write.commit().expect("Must not fail");
                             }

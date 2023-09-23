@@ -1,3 +1,4 @@
+use crate::be::dbentry::DbBackup;
 use crate::be::{Backend, BackendConfig};
 use crate::prelude::*;
 use crate::schema::Schema;
@@ -66,4 +67,70 @@ pub async fn setup_idm_test() -> (IdmServer, IdmServerDelayed, IdmServerAudit) {
     IdmServer::new(qs, "https://idm.example.com")
         .await
         .expect("Failed to setup idms")
+}
+
+pub async fn build_the_schema() -> QueryServer {
+    // Create an in memory backend
+    let schema_outer = Schema::new().expect("Failed to init schema");
+    let idxmeta = {
+        let schema_txn = schema_outer.write();
+        schema_txn.reload_idxmeta()
+    };
+    let be =
+        Backend::new(BackendConfig::new_test("main"), idxmeta, false).expect("Failed to init BE");
+
+    eprintln!("be.new done");
+    // Init is called via the proc macro
+    let qs = QueryServer::new(be, schema_outer, "example.com".to_string());
+
+    eprintln!("qs.new done");
+
+    qs.initialise_helper(duration_from_epoch_now())
+        .await
+        .expect("init failed!");
+    eprintln!("qs.initialise_helper done");
+    qs
+}
+
+pub async fn build_schema_from_backup(bak: &DbBackup) -> QueryServer {
+    // Create an in memory backend
+    let schema_outer = Schema::new().expect("Failed to init schema");
+
+    let idxmeta = {
+        let schema_txn = schema_outer.write();
+        schema_txn.reload_idxmeta()
+    };
+
+    let be =
+        Backend::new(BackendConfig::new_test("main"), idxmeta, false).expect("Failed to init BE");
+
+    be.write()
+        .restore_from_dbbak(bak.clone())
+        .expect("Failed to restore from backup");
+
+    eprintln!("be.new done");
+    // Init is called via the proc macro
+    let qs = QueryServer::new(be, schema_outer, "example.com".to_string());
+
+    // eprintln!("qs.new done");
+
+    qs.initialise_helper(duration_from_epoch_now())
+        .await
+        .expect("init failed!");
+    eprintln!("qs.initialise_helper done");
+    qs
+}
+
+#[allow(clippy::expect_used)]
+pub async fn setup_idm_scaling_test(
+    backup: &DbBackup,
+) -> (IdmServer, IdmServerDelayed, IdmServerAudit) {
+    // because setting the thing up over an dover is dumb
+    let qs = build_schema_from_backup(&backup).await;
+
+    let idm = IdmServer::new(qs, "https://idm.example.com")
+        .await
+        .expect("Failed to setup idms");
+    eprintln!("stood up idm");
+    idm
 }

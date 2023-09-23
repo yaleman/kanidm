@@ -18,6 +18,9 @@ path = "src/lib.rs"
 [[bench]]
 name = "scaling_10k"
 harness = false
+[[bench]]
+name = "scaling_10k_bencher"
+harness = false
 
 [dependencies]
 base64 = { workspace = true }
@@ -66,8 +69,8 @@ toml = { workspace = true }
 touch = { workspace = true }
 nonempty = { workspace = true, features = ["serialize"] }
 
+tracing-subscriber = { workspace = true }
 tracing = { workspace = true, features = ["attributes"] }
-
 url = { workspace = true, features = ["serde"] }
 urlencoding = { workspace = true }
 uuid = { workspace = true, features = ["serde", "v4"] }
@@ -79,6 +82,7 @@ webauthn-rs = { workspace = true, features = [
 webauthn-rs-core = { workspace = true }
 zxcvbn = { workspace = true }
 serde_with = { workspace = true }
+bencher = "0.1.5"
 
 # because windows really can't build without the bundled one
 [target.'cfg(target_family = "windows")'.dependencies]

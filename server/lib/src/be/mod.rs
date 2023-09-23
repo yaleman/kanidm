@@ -845,7 +845,7 @@ pub trait BackendTransaction {
         self.get_ruv().verify(&entries, results);
     }
 
-    fn backup(&mut self, dst_path: &str) -> Result<(), OperationError> {
+    fn get_backup(&mut self) -> Result<DbBackup, OperationError> {
         // load all entries into RAM, may need to change this later
         // if the size of the database compared to RAM is an issue
         let idl = IdList::AllIds;
@@ -872,12 +872,16 @@ pub trait BackendTransaction {
             .get_db_ts_max()
             .and_then(|u| u.ok_or(OperationError::InvalidDbState))?;
 
-        let bak = DbBackup::V2 {
+        Ok(DbBackup::V2 {
             db_s_uuid,
             db_d_uuid,
             db_ts_max,
             entries,
-        };
+        })
+    }
+
+    fn write_backup_to_file(&mut self, dst_path: &str) -> Result<(), OperationError> {
+        let bak = self.get_backup()?;
 
         let serialized_entries_str = serde_json::to_string(&bak).map_err(|e| {
             admin_error!(?e, "serde error");
@@ -1632,16 +1636,16 @@ impl<'a> BackendWriteTransaction<'a> {
                 admin_error!("reindex failed -> {:?}", e);
                 e
             })?;
-        limmediate_warning!(" reindexed {} entries ✅\n", count);
-        limmediate_warning!("Optimising Indexes ... ");
+        admin_info!("reindexed {} entries ✅", count);
+        admin_info!("Optimising Indexes ... ");
         self.idlayer.optimise_dirty_idls();
-        limmediate_warning!("done ✅\n");
-        limmediate_warning!("Calculating Index Optimisation Slopes ... ");
+        admin_info!("done ✅");
+        admin_debug!("Calculating Index Optimisation Slopes ... ");
         self.idlayer.analyse_idx_slopes().map_err(|e| {
             admin_error!(err = ?e, "index optimisation failed");
             e
         })?;
-        limmediate_warning!("done ✅\n");
+        admin_info!("done ✅");
         Ok(())
     }
 
@@ -1688,26 +1692,11 @@ impl<'a> BackendWriteTransaction<'a> {
         Ok(slope)
     }
 
-    pub fn restore(&mut self, src_path: &str) -> Result<(), OperationError> {
+    pub fn restore_from_dbbak(&mut self, dbbak: DbBackup) -> Result<(), OperationError> {
         let idlayer = self.get_idlayer();
-        // load all entries into RAM, may need to change this later
-        // if the size of the database compared to RAM is an issue
-        let serialized_string = fs::read_to_string(src_path).map_err(|e| {
-            admin_error!("fs::read_to_string {:?}", e);
-            OperationError::FsError
-        })?;
-
         idlayer.danger_purge_id2entry().map_err(|e| {
             admin_error!("purge_id2entry failed {:?}", e);
             e
-        })?;
-
-        let dbbak_option: Result<DbBackup, serde_json::Error> =
-            serde_json::from_str(&serialized_string);
-
-        let dbbak = dbbak_option.map_err(|e| {
-            admin_error!("serde_json error {:?}", e);
-            OperationError::SerdeJsonError
         })?;
 
         let dbentries = match dbbak {
@@ -1758,6 +1747,21 @@ impl<'a> BackendWriteTransaction<'a> {
         } else {
             Err(OperationError::ConsistencyError(vr))
         }
+    }
+
+    pub fn restore_from_file(&mut self, src_path: &str) -> Result<(), OperationError> {
+        // load all entries into RAM, may need to change this later
+        // if the size of the database compared to RAM is an issue
+        let serialized_string = fs::read_to_string(src_path).map_err(|e| {
+            admin_error!("fs::read_to_string {:?}", e);
+            OperationError::FsError
+        })?;
+        let dbbak: DbBackup = serde_json::from_str(&serialized_string).map_err(|e| {
+            admin_error!("serde_json error {:?}", e);
+            OperationError::SerdeJsonError
+        })?;
+
+        self.restore_from_dbbak(dbbak)
     }
 
     #[instrument(level = "debug", name = "be::ruv_rebuild", skip_all)]
@@ -2422,8 +2426,10 @@ mod tests {
                 _ => (),
             }
 
-            be.backup(&db_backup_file_name).expect("Backup failed!");
-            be.restore(&db_backup_file_name).expect("Restore failed!");
+            be.write_backup_to_file(&db_backup_file_name)
+                .expect("Backup failed!");
+            be.restore_from_file(&db_backup_file_name)
+                .expect("Restore failed!");
 
             assert!(be.verify().is_empty());
         });
@@ -2486,7 +2492,8 @@ mod tests {
                 _ => (),
             }
 
-            be.backup(&db_backup_file_name).expect("Backup failed!");
+            be.write_backup_to_file(&db_backup_file_name)
+                .expect("Backup failed!");
 
             // Now here, we need to tamper with the file.
             let serialized_string = fs::read_to_string(&db_backup_file_name).unwrap();
@@ -2510,7 +2517,8 @@ mod tests {
             let serialized_entries_str = serde_json::to_string_pretty(&dbbak).unwrap();
             fs::write(&db_backup_file_name, serialized_entries_str).unwrap();
 
-            be.restore(&db_backup_file_name).expect("Restore failed!");
+            be.restore_from_file(&db_backup_file_name)
+                .expect("Restore failed!");
 
             assert!(be.verify().is_empty());
         });

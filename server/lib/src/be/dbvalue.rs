@@ -15,7 +15,7 @@ use webauthn_rs_core::proto::{COSEKey, UserVerificationPolicy};
 use crate::repl::cid::Cid;
 pub use kanidm_lib_crypto::DbPasswordV1;
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct DbCidV1 {
     #[serde(rename = "s")]
     pub server_id: Uuid,
@@ -23,7 +23,7 @@ pub struct DbCidV1 {
     pub timestamp: Duration,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum DbValueIntentTokenStateV1 {
     #[serde(rename = "v")]
     Valid {
@@ -51,14 +51,14 @@ pub enum DbValueIntentTokenStateV1 {
     Consumed { max_ttl: Duration },
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum DbTotpAlgoV1 {
     S1,
     S256,
     S512,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct DbTotpV1 {
     #[serde(rename = "l")]
     pub label: String,
@@ -82,7 +82,7 @@ impl std::fmt::Debug for DbTotpV1 {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct DbWebauthnV1 {
     #[serde(rename = "l")]
     pub label: String,
@@ -98,7 +98,7 @@ pub struct DbWebauthnV1 {
     pub registration_policy: UserVerificationPolicy,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct DbBackupCodeV1 {
     pub code_set: HashSet<String>, // has to use std::HashSet for serde
 }
@@ -116,7 +116,7 @@ fn is_false(b: &bool) -> bool {
 }
 
 #[skip_serializing_none]
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "type_")]
 pub enum DbCred {
     // These are the old v1 versions.
@@ -290,7 +290,7 @@ impl fmt::Display for DbCred {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct DbValueCredV1 {
     #[serde(rename = "t")]
     pub tag: String,
@@ -298,7 +298,7 @@ pub struct DbValueCredV1 {
     pub data: DbCred,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum DbApiToken {
     V1 {
         #[serde(rename = "u")]
@@ -308,17 +308,17 @@ pub enum DbApiToken {
     },
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum DbValuePasskeyV1 {
     V4 { u: Uuid, t: String, k: PasskeyV4 },
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum DbValueDeviceKeyV1 {
     V4 { u: Uuid, t: String, k: DeviceKeyV4 },
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct DbValueTaggedStringV1 {
     #[serde(rename = "t")]
     pub tag: String,
@@ -326,21 +326,21 @@ pub struct DbValueTaggedStringV1 {
     pub data: String,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct DbValueEmailAddressV1 {
     pub d: String,
     #[serde(skip_serializing_if = "is_false", default)]
     pub p: bool,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct DbValuePhoneNumberV1 {
     pub d: String,
     #[serde(skip_serializing_if = "is_false", default)]
     pub p: bool,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct DbValueAddressV1 {
     #[serde(rename = "f")]
     pub formatted: String,
@@ -356,7 +356,7 @@ pub struct DbValueAddressV1 {
     pub country: String,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct DbValueOauthScopeMapV1 {
     #[serde(rename = "u")]
     pub refer: Uuid,
@@ -364,7 +364,7 @@ pub struct DbValueOauthScopeMapV1 {
     pub data: Vec<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Default)]
+#[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub enum DbValueAccessScopeV1 {
     #[serde(rename = "i")]
     IdentityOnly,
@@ -379,7 +379,7 @@ pub enum DbValueAccessScopeV1 {
     Synchronise,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum DbValueIdentityId {
     #[serde(rename = "v1i")]
     V1Internal,
@@ -389,7 +389,7 @@ pub enum DbValueIdentityId {
     V1Sync(Uuid),
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum DbValueSessionStateV1 {
     #[serde(rename = "ea")]
     ExpiresAt(String),
@@ -399,7 +399,7 @@ pub enum DbValueSessionStateV1 {
     RevokedAt(DbCidV1),
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum DbValueSession {
     V1 {
         #[serde(rename = "u")]
@@ -449,7 +449,7 @@ pub enum DbValueSession {
     },
 }
 
-#[derive(Serialize, Deserialize, Debug, Default)]
+#[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub enum DbValueApiTokenScopeV1 {
     #[serde(rename = "r")]
     #[default]
@@ -460,7 +460,7 @@ pub enum DbValueApiTokenScopeV1 {
     Synchronise,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum DbValueApiToken {
     V1 {
         #[serde(rename = "u")]
@@ -478,7 +478,7 @@ pub enum DbValueApiToken {
     },
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum DbValueOauth2Session {
     V1 {
         #[serde(rename = "u")]
@@ -506,7 +506,7 @@ pub enum DbValueOauth2Session {
     },
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum DbValueV1 {
     #[serde(rename = "U8")]
     Utf8(String),
@@ -571,7 +571,7 @@ pub enum DbValueV1 {
     Session { u: Uuid },
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum DbValueSetV2 {
     #[serde(rename = "U8")]
     Utf8(Vec<String>),
@@ -717,7 +717,7 @@ mod tests {
         DbCredTypeV1::Pw
     }
 
-    #[derive(Serialize, Deserialize, Debug)]
+    #[derive(Serialize, Deserialize, Debug, Clone)]
     pub enum DbCredTypeV1 {
         Pw,
         GPw,
@@ -729,7 +729,7 @@ mod tests {
     }
 
     #[skip_serializing_none]
-    #[derive(Serialize, Deserialize, Debug)]
+    #[derive(Serialize, Deserialize, Debug, Clone)]
     pub struct DbCredV1 {
         #[serde(default = "dbcred_type_default_pw")]
         pub type_: DbCredTypeV1,

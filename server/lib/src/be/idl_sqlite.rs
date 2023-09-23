@@ -1598,6 +1598,7 @@ impl IdlSqliteWriteTransaction {
 
 impl IdlSqlite {
     pub fn new(cfg: &BackendConfig, vacuum: bool) -> Result<Self, OperationError> {
+        #[cfg(test)]
         if cfg.path.is_empty() {
             debug_assert!(cfg.pool_size == 1);
         }

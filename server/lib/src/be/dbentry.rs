@@ -10,12 +10,12 @@ use crate::be::dbvalue::{DbValueEmailAddressV1, DbValuePhoneNumberV1, DbValueSet
 use crate::prelude::entries::Attribute;
 use crate::prelude::OperationError;
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct DbEntryV1 {
     pub attrs: BTreeMap<AttrString, NonEmpty<DbValueV1>>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct DbEntryV2 {
     pub attrs: BTreeMap<AttrString, DbValueSetV2>,
 }
@@ -23,13 +23,13 @@ pub struct DbEntryV2 {
 // REMEMBER: If you add a new version here, you MUST
 // update entry.rs to_dbentry to export to the latest
 // type always!!
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum DbEntryVers {
     V1(DbEntryV1),
     V2(DbEntryV2),
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 // This doesn't need a version since uuid2spn is reindexed - remember if you change this
 // though, to change the index version!
 pub enum DbIdentSpn {
@@ -42,12 +42,12 @@ pub enum DbIdentSpn {
 }
 
 // This is actually what we store into the DB.
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct DbEntry {
     pub ent: DbEntryVers,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 #[serde(untagged)]
 pub enum DbBackup {
     V1(Vec<DbEntry>),

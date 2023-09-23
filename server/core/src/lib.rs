@@ -307,7 +307,7 @@ pub fn backup_server_core(config: &Configuration, dst_path: &str) {
     };
 
     let mut be_ro_txn = be.read();
-    let r = be_ro_txn.backup(dst_path);
+    let r = be_ro_txn.write_backup_to_file(dst_path);
     match r {
         Ok(_) => info!("Backup success!"),
         Err(e) => {
@@ -339,7 +339,9 @@ pub async fn restore_server_core(config: &Configuration, dst_path: &str) {
     };
 
     let mut be_wr_txn = be.write();
-    let r = be_wr_txn.restore(dst_path).and_then(|_| be_wr_txn.commit());
+    let r = be_wr_txn
+        .restore_from_file(dst_path)
+        .and_then(|_| be_wr_txn.commit());
 
     if r.is_err() {
         error!("Failed to restore database: {:?}", r);
