@@ -258,10 +258,8 @@ pub trait AccessControlsTransaction<'a> {
     ) -> Result<Vec<Entry<EntryReduced, EntryCommitted>>, OperationError> {
         // Build a reference set from the req_attrs. This is what we test against
         // to see if the attribute is something we currently want.
-        let requested_attrs: Option<BTreeSet<_>> = se
-            .attrs
-            .as_ref()
-            .map(|vs| vs.iter().map(|s| s.as_str()).collect());
+        let requested_attrs: Option<BTreeSet<_>> =
+            se.attrs.map(|vs| vs.into_iter().map(|s| s).collect());
 
         // Get the relevant acps for this receiver.
         let related_acp: Vec<(&AccessControlSearch, _)> = self.search_related_acp(&se.ident);
@@ -294,6 +292,9 @@ pub trait AccessControlsTransaction<'a> {
                             allowed = ?allowed_attrs,
                             "reduction",
                         );
+
+                        let allowed_attrs: BTreeSet<Attribute> =
+                            allowed_attrs.iter().map(|a| Attribute::from(*a)).collect();
 
                         // Reduce requested by allowed.
                         let reduced_attrs = if let Some(requested) = requested_attrs.as_ref() {

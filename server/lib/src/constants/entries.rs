@@ -1,6 +1,6 @@
 //! Constant Entries for the IDM
 use crate::prelude::AttrString;
-use enum_iterator::Sequence;
+// use enum_iterator::Sequence;
 use std::fmt::Display;
 
 use crate::constants::uuids::*;
@@ -22,20 +22,29 @@ fn test_valueattribute_as_str() {
     assert!(Attribute::Class.to_string() == String::from("class"));
 }
 
-#[test]
-// this ensures we cover both ends of the conversion to/from string-types
-fn test_valueattribute_round_trip() {
-    use enum_iterator::all;
-    let the_list = all::<Attribute>().collect::<Vec<_>>();
-    for attr in the_list {
-        let s: &'static str = attr.into();
-        let attr2 = Attribute::try_from(s.to_string()).unwrap();
-        assert!(attr == attr2);
-    }
-}
+// #[test]
+// // this ensures we cover both ends of the conversion to/from string-types
+// fn test_valueattribute_round_trip() {
+//     use enum_iterator::all;
+//     let the_list = all::<Attribute>().collect::<Vec<_>>();
+//     for attr in the_list {
+//         let s: &'static str = attr.into();
+//         let attr2 = Attribute::try_from(s.to_string()).unwrap();
+//         assert!(attr == attr2);
+//     }
+// }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Sequence, Hash)]
+#[derive(
+    // Copy,
+    Clone,
+    Debug,
+    Eq,
+    PartialEq,
+    // Sequence,
+    Hash,
+)]
 pub enum Attribute {
+    Custom(String),
     Account,
     AccountExpire,
     AccountValidFrom,
@@ -89,6 +98,7 @@ pub enum Attribute {
     Group,
     IdVerificationEcKey,
     Index,
+    InvalidAttribute,
     IpaNtHash,
     IpaSshPubKey,
     JwsEs256PrivateKey,
@@ -176,6 +186,8 @@ pub enum Attribute {
     Extra,
     #[cfg(any(debug_assertions, test))]
     TestNotAllowed,
+    #[cfg(any(debug_assertions, test))]
+    SingleValueString,
 }
 
 impl PartialOrd for Attribute {
@@ -205,14 +217,6 @@ impl From<&Attribute> for &'static str {
     }
 }
 
-impl TryFrom<&str> for Attribute {
-    type Error = OperationError;
-
-    fn try_from(value: &str) -> Result<Self, Self::Error> {
-        Attribute::try_from(value.to_string())
-    }
-}
-
 impl TryFrom<&AttrString> for Attribute {
     type Error = OperationError;
 
@@ -221,10 +225,19 @@ impl TryFrom<&AttrString> for Attribute {
     }
 }
 
+impl From<&str> for Attribute {
+    fn from(value: &str) -> Self {
+        Attribute::try_from(value.to_string())
+            .expect("Welp, I must have removed the custom attribute again!")
+    }
+}
+
 impl TryFrom<String> for Attribute {
     type Error = OperationError;
     fn try_from(val: String) -> Result<Self, OperationError> {
         let res = match val.as_str() {
+            ATTR_INVALID_ATTRIBUTE => Attribute::InvalidAttribute,
+
             ATTR_ACCOUNT => Attribute::Account,
             ATTR_ACCOUNT_EXPIRE => Attribute::AccountExpire,
             ATTR_ACCOUNT_VALID_FROM => Attribute::AccountValidFrom,
@@ -363,9 +376,17 @@ impl TryFrom<String> for Attribute {
             TEST_ATTR_NUMBER => Attribute::TestNumber,
             #[cfg(any(debug_assertions, test))]
             TEST_ATTR_NOTALLOWED => Attribute::TestNotAllowed,
+            #[cfg(any(debug_assertions, test))]
+            TEST_SINGLE_VALUE_STRING => Attribute::SingleValueString,
+
             _ => {
-                trace!("Failed to convert {} to Attribute", val);
-                return Err(OperationError::InvalidAttributeName(val));
+                // if val.starts_with("custom_") {
+                // let (_, res) = val.split_at(7);
+                Attribute::Custom(val)
+                // } else {
+                // trace!("Failed to convert {} to Attribute", val);
+                // return Err(OperationError::InvalidAttributeName(val));
+                // }
             }
         };
         Ok(res)
@@ -375,6 +396,8 @@ impl TryFrom<String> for Attribute {
 impl From<Attribute> for &'static str {
     fn from(val: Attribute) -> Self {
         match val {
+            Attribute::Custom(value) => value.as_str(),
+            Attribute::InvalidAttribute => ATTR_INVALID_ATTRIBUTE,
             Attribute::Account => ATTR_ACCOUNT,
             Attribute::AccountExpire => ATTR_ACCOUNT_EXPIRE,
             Attribute::AccountValidFrom => ATTR_ACCOUNT_VALID_FROM,
@@ -513,6 +536,8 @@ impl From<Attribute> for &'static str {
             Attribute::TestNumber => TEST_ATTR_NUMBER,
             #[cfg(any(debug_assertions, test))]
             Attribute::TestNotAllowed => TEST_ATTR_NOTALLOWED,
+            #[cfg(any(debug_assertions, test))]
+            Attribute::SingleValueString => TEST_SINGLE_VALUE_STRING,
         }
     }
 }

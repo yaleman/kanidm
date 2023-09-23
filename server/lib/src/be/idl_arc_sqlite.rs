@@ -177,18 +177,18 @@ macro_rules! get_idl {
         //
         // First attempt to get from this cache.
         let cache_key = IdlCacheKeyRef {
-            a: $attr,
+            a: $attr.clone(),
             i: $itype,
             k: $idx_key,
         };
         let cache_r = $self.idl_cache.get(&cache_key as &dyn IdlCacheKeyToRef);
         // If hit, continue.
         if let Some(ref data) = cache_r {
-            trace!(
-                cached_index = ?$itype,
-                attr = ?$attr,
-                idl = %data,
-            );
+            // trace!(
+            //     cached_index = ?$itype,
+            //     attr = ?attr,
+            //     idl = %data,
+            // );
             return Ok(Some(data.as_ref().clone()));
         }
         // If miss, get from db *and* insert to the cache.

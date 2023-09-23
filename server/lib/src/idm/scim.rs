@@ -329,7 +329,7 @@ impl<'a> IdmServerProxyWriteTransaction<'a> {
             .chain(
                 sync_class
                     .may_iter()
-                    .map(|aname| Modify::Purged(aname.clone())),
+                    .map(|aname| Modify::Purged(aname.into())),
             )
             .collect();
 
@@ -458,7 +458,7 @@ impl<'a> IdmServerProxyWriteTransaction<'a> {
             .chain(
                 sync_class
                     .may_iter()
-                    .map(|aname| Modify::Purged(aname.clone())),
+                    .map(|aname| Modify::Purged(aname.into())),
             )
             .collect();
 
@@ -795,11 +795,14 @@ impl<'a> IdmServerProxyWriteTransaction<'a> {
     ) -> Result<Vec<Value>, OperationError> {
         let schema = self.qs_write.get_schema();
 
-        let attr_schema = schema.get_attributes().get(scim_attr_name).ok_or_else(|| {
-            OperationError::InvalidAttribute(format!(
-                "No such attribute in schema - {scim_attr_name}"
-            ))
-        })?;
+        let attr_schema = schema
+            .get_attributes()
+            .get(&Attribute::from(scim_attr_name))
+            .ok_or_else(|| {
+                OperationError::InvalidAttribute(format!(
+                    "No such attribute in schema - {scim_attr_name}"
+                ))
+            })?;
 
         match (attr_schema.syntax, attr_schema.multivalue, scim_attr) {
             (
@@ -1194,7 +1197,7 @@ impl<'a> IdmServerProxyWriteTransaction<'a> {
                     .chain(cls.systemmust.iter())
                     .chain(cls.must.iter())
             })
-            .map(|s| s.as_str())
+            .map(|s| s.as_ref())
             // Finally, establish if the attribute is syncable. Technically this could probe some attrs
             // multiple times due to how the loop is established, but in reality there are few attr overlaps.
             .filter(|a| sync_allow_attr_set.contains(*a))
@@ -1287,7 +1290,7 @@ impl<'a> IdmServerProxyWriteTransaction<'a> {
             .values()
             // Only add attrs to this if they are both sync allowed AND authority granted.
             .filter_map(|attr| {
-                if attr.sync_allowed && !sync_authority_set.contains(attr.name.as_str()) {
+                if attr.sync_allowed && !sync_authority_set.contains(attr.name.as_ref()) {
                     Some(attr.name.to_string())
                 } else {
                     None

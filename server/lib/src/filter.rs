@@ -608,9 +608,9 @@ impl FilterComp {
                 match schema_attributes.get(&attr_norm) {
                     Some(schema_a) => {
                         schema_a
-                            .validate_partialvalue(attr_norm.as_str(), value)
+                            .validate_partialvalue(attr_norm.into(), value)
                             // Okay, it worked, transform to a filter component
-                            .map(|_| FilterComp::Eq(attr_norm, value.clone()))
+                            .map(|_| FilterComp::Eq(attr_norm.into(), value.clone()))
                         // On error, pass the error back out.
                     }
                     None => Err(SchemaError::InvalidAttribute(attr_norm.to_string())),
@@ -623,9 +623,9 @@ impl FilterComp {
                 match schema_attributes.get(&attr_norm) {
                     Some(schema_a) => {
                         schema_a
-                            .validate_partialvalue(attr_norm.as_str(), value)
+                            .validate_partialvalue(attr_norm.as_ref(), value)
                             // Okay, it worked, transform to a filter component
-                            .map(|_| FilterComp::Sub(attr_norm, value.clone()))
+                            .map(|_| FilterComp::Sub(attr_norm.into(), value.clone()))
                         // On error, pass the error back out.
                     }
                     None => Err(SchemaError::InvalidAttribute(attr_norm.to_string())),
@@ -637,7 +637,7 @@ impl FilterComp {
                 match schema_attributes.get(&attr_norm) {
                     Some(_attr_name) => {
                         // Return our valid data
-                        Ok(FilterComp::Pres(attr_norm))
+                        Ok(FilterComp::Pres(attr_norm.into()))
                     }
                     None => Err(SchemaError::InvalidAttribute(attr_norm.to_string())),
                 }
@@ -649,9 +649,9 @@ impl FilterComp {
                 match schema_attributes.get(&attr_norm) {
                     Some(schema_a) => {
                         schema_a
-                            .validate_partialvalue(attr_norm.as_str(), value)
+                            .validate_partialvalue(attr_norm.as_ref(), value)
                             // Okay, it worked, transform to a filter component
-                            .map(|_| FilterComp::LessThan(attr_norm, value.clone()))
+                            .map(|_| FilterComp::LessThan(attr_norm.into(), value.clone()))
                         // On error, pass the error back out.
                     }
                     None => Err(SchemaError::InvalidAttribute(attr_norm.to_string())),
@@ -719,17 +719,17 @@ impl FilterComp {
         Ok(match f {
             ProtoFilter::Eq(a, v) => {
                 let nk = qs.get_schema().normalise_attr_name(a);
-                let v = qs.clone_partialvalue(nk.as_str(), v)?;
-                FilterComp::Eq(nk, v)
+                let v = qs.clone_partialvalue(nk.as_ref(), v)?;
+                FilterComp::Eq(nk.into(), v)
             }
             ProtoFilter::Sub(a, v) => {
                 let nk = qs.get_schema().normalise_attr_name(a);
-                let v = qs.clone_partialvalue(nk.as_str(), v)?;
-                FilterComp::Sub(nk, v)
+                let v = qs.clone_partialvalue(nk.as_ref(), v)?;
+                FilterComp::Sub(nk.into(), v)
             }
             ProtoFilter::Pres(a) => {
                 let nk = qs.get_schema().normalise_attr_name(a);
-                FilterComp::Pres(nk)
+                FilterComp::Pres(nk.into())
             }
             ProtoFilter::Or(l) => {
                 *elems = (*elems)
@@ -771,17 +771,17 @@ impl FilterComp {
         Ok(match f {
             ProtoFilter::Eq(a, v) => {
                 let nk = qs.get_schema().normalise_attr_name(a);
-                let v = qs.clone_partialvalue(nk.as_str(), v)?;
-                FilterComp::Eq(nk, v)
+                let v = qs.clone_partialvalue(nk.as_ref(), v)?;
+                FilterComp::Eq(nk.into(), v)
             }
             ProtoFilter::Sub(a, v) => {
                 let nk = qs.get_schema().normalise_attr_name(a);
-                let v = qs.clone_partialvalue(nk.as_str(), v)?;
-                FilterComp::Sub(nk, v)
+                let v = qs.clone_partialvalue(nk.as_ref(), v)?;
+                FilterComp::Sub(nk.into(), v)
             }
             ProtoFilter::Pres(a) => {
                 let nk = qs.get_schema().normalise_attr_name(a);
-                FilterComp::Pres(nk)
+                FilterComp::Pres(nk.into())
             }
             ProtoFilter::Or(l) => {
                 *elems = (*elems)

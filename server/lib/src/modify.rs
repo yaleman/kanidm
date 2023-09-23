@@ -176,8 +176,8 @@ impl ModifyList<ModifyInvalid> {
                     let attr_norm = schema.normalise_attr_name(attr);
                     match schema_attributes.get(&attr_norm) {
                         Some(schema_a) => schema_a
-                            .validate_value(attr_norm.as_str(), value)
-                            .map(|_| Modify::Present(attr_norm, value.clone())),
+                            .validate_value(attr_norm.as_ref(), value)
+                            .map(|_| Modify::Present(attr_norm.into(), value.clone())),
                         None => Err(SchemaError::InvalidAttribute(attr_norm.to_string())),
                     }
                 }
@@ -185,12 +185,12 @@ impl ModifyList<ModifyInvalid> {
                     let attr_norm = schema.normalise_attr_name(attr);
                     match schema_attributes.get(&attr_norm) {
                         Some(schema_a) => schema_a
-                            .validate_partialvalue(attr_norm.as_str(), value)
-                            .map(|_| Modify::Removed(attr_norm, value.clone())),
+                            .validate_partialvalue(attr_norm.as_ref(), value)
+                            .map(|_| Modify::Removed(attr_norm.into(), value.clone())),
                         None => Err(SchemaError::InvalidAttribute(attr_norm.to_string())),
                     }
                 }
-                Modify::Assert(attr, value) => match schema_attributes.get(attr.as_ref()) {
+                Modify::Assert(attr, value) => match schema_attributes.get(attr) {
                     // TODO: given attr is an enum... you can't get this wrong anymore?
                     Some(schema_a) => schema_a
                         .validate_partialvalue(attr.as_ref(), value)
@@ -200,7 +200,7 @@ impl ModifyList<ModifyInvalid> {
                 Modify::Purged(attr) => {
                     let attr_norm = schema.normalise_attr_name(attr);
                     match schema_attributes.get(&attr_norm) {
-                        Some(_attr_name) => Ok(Modify::Purged(attr_norm)),
+                        Some(_attr_name) => Ok(Modify::Purged(attr_norm.into())),
                         None => Err(SchemaError::InvalidAttribute(attr_norm.to_string())),
                     }
                 }

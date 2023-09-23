@@ -129,8 +129,7 @@ impl ReferentialIntegrity {
 
         for (_, post) in work_set.iter_mut() {
             for schema_attribute in ref_types.values() {
-                let attribute = (&schema_attribute.name).try_into()?;
-                post.remove_avas(attribute, &removed_ids);
+                post.remove_avas(schema_attribute.name, &removed_ids);
             }
         }
 
@@ -323,19 +322,8 @@ impl Plugin for ReferentialIntegrity {
         for c in &all_cand {
             // For all reference in each cand.
             for rtype in ref_types.values() {
-                let attr: Attribute = match (&rtype.name).try_into() {
-                    Ok(val) => val,
-                    Err(err) => {
-                        // we shouldn't be able to get here...
-                        admin_error!("verify referential integrity invalid attribute {} specified - please log this as a bug! {:?}", &rtype.name, err);
-                        res.push(Err(ConsistencyError::InvalidAttributeType(
-                            rtype.name.to_string(),
-                        )));
-                        continue;
-                    }
-                };
                 // If the attribute is present
-                if let Some(vs) = c.get_ava_set(attr) {
+                if let Some(vs) = c.get_ava_set(rtype.name) {
                     // For each value in the set.
                     match vs.as_ref_uuid_iter() {
                         Some(uuid_iter) => {
@@ -373,22 +361,14 @@ impl ReferentialIntegrity {
             ref_types.values().filter_map(move |rtype| {
                 // Skip dynamic members, these are recalculated by the
                 // memberof plugin.
-                let skip_mb = dyn_group && rtype.name == Attribute::DynMember.as_ref();
+                let skip_mb = dyn_group && rtype.name == Attribute::DynMember;
                 // Skip memberOf, also recalculated.
-                let skip_mo = rtype.name == Attribute::MemberOf.as_ref();
+                let skip_mo = rtype.name == Attribute::MemberOf;
                 if skip_mb || skip_mo {
                     None
                 } else {
                     trace!(rtype_name = ?rtype.name, "examining");
-                    c.get_ava_set(
-                        (&rtype.name)
-                            .try_into()
-                            .map_err(|e| {
-                                admin_error!(?e, "invalid attribute type {}", &rtype.name);
-                                None::<Attribute>
-                            })
-                            .ok()?,
-                    )
+                    c.get_ava_set(rtype.name)
                 }
             })
         });

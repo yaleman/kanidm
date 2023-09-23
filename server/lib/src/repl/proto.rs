@@ -441,10 +441,10 @@ impl ReplEntryV1 {
                 let live_attrs = entry.get_ava();
 
                 let attrs = changes
-                    .iter()
+                    .into_iter()
                     .filter_map(|(attr_name, cid)| {
                         if schema.is_replicated(attr_name) {
-                            let live_attr = live_attrs.get(attr_name.as_str());
+                            let live_attr = live_attrs.get(&attr_name);
 
                             let cid = cid.into();
                             let attr = live_attr.and_then(|maybe|
@@ -486,11 +486,12 @@ impl ReplEntryV1 {
                 trace!("{:?} {:#?}", at, attrs);
                 // We need to build two sets, one for the Entry Change States, and one for the
                 // Eattrs.
-                let mut changes = BTreeMap::default();
+                let mut changes: BTreeMap<Attribute, Cid> = BTreeMap::default();
                 let mut eattrs = Eattrs::default();
 
                 for (attr_name, ReplAttrStateV1 { cid, attr }) in attrs.iter() {
                     let astring: AttrString = attr_name.as_str().into();
+                    let attribute = Attribute::from(attr_name.as_str());
                     let cid: Cid = cid.into();
 
                     if let Some(attr_value) = attr {
@@ -498,7 +499,7 @@ impl ReplEntryV1 {
                             error!("Unable to restore valueset for {}", attr_name);
                             e
                         })?;
-                        if eattrs.insert(astring.clone(), v).is_some() {
+                        if eattrs.insert(attribute, v).is_some() {
                             error!(
                                 "Impossible eattrs state, attribute {} appears to be duplicated!",
                                 attr_name
@@ -507,7 +508,7 @@ impl ReplEntryV1 {
                         }
                     }
 
-                    if changes.insert(astring, cid).is_some() {
+                    if changes.insert(attribute, cid).is_some() {
                         error!(
                             "Impossible changes state, attribute {} appears to be duplicated!",
                             attr_name
@@ -573,7 +574,7 @@ impl ReplIncrementalEntryV1 {
                     .iter()
                     .filter_map(|(attr_name, cid)| {
                         // If the cid is within the ctx range
-                        let within = schema.is_replicated(attr_name)
+                        let within = schema.is_replicated(&attr_name)
                             && ctx_range
                                 .get(&cid.s_uuid)
                                 .map(|repl_range| {
@@ -587,7 +588,7 @@ impl ReplIncrementalEntryV1 {
 
                         // Then setup to supply it.
                         if within {
-                            let live_attr = live_attrs.get(attr_name.as_str());
+                            let live_attr = live_attrs.get(&attr_name);
                             let cid = cid.into();
                             let attr = live_attr.and_then(|maybe| {
                                 if maybe.len() > 0 {
@@ -620,11 +621,12 @@ impl ReplIncrementalEntryV1 {
         match &self.st {
             ReplStateV1::Live { at, attrs } => {
                 trace!("{:?} {:#?}", at, attrs);
-                let mut changes = BTreeMap::default();
+                let mut changes: BTreeMap<Attribute, Cid> = BTreeMap::default();
                 let mut eattrs = Eattrs::default();
 
                 for (attr_name, ReplAttrStateV1 { cid, attr }) in attrs.iter() {
                     let astring: AttrString = attr_name.as_str().into();
+                    let attribute: Attribute = Attribute::from(attr_name.as_str());
                     let cid: Cid = cid.into();
 
                     if let Some(attr_value) = attr {
@@ -632,7 +634,7 @@ impl ReplIncrementalEntryV1 {
                             error!("Unable to restore valueset for {}", attr_name);
                             e
                         })?;
-                        if eattrs.insert(astring.clone(), v).is_some() {
+                        if eattrs.insert(attribute, v).is_some() {
                             error!(
                                 "Impossible eattrs state, attribute {} appears to be duplicated!",
                                 attr_name
@@ -641,7 +643,7 @@ impl ReplIncrementalEntryV1 {
                         }
                     }
 
-                    if changes.insert(astring, cid).is_some() {
+                    if changes.insert(attribute, cid).is_some() {
                         error!(
                             "Impossible changes state, attribute {} appears to be duplicated!",
                             attr_name

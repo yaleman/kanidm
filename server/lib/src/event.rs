@@ -75,7 +75,7 @@ pub struct SearchEvent {
     pub filter: Filter<FilterValid>,
     // This is the original filter, for the purpose of ACI checking.
     pub filter_orig: Filter<FilterValid>,
-    pub attrs: Option<BTreeSet<AttrString>>,
+    pub attrs: Option<BTreeSet<Attribute>>,
 }
 
 impl SearchEvent {
@@ -107,9 +107,9 @@ impl SearchEvent {
         attrs: Option<&[String]>,
         qs: &mut QueryServerReadTransaction,
     ) -> Result<Self, OperationError> {
-        let r_attrs: Option<BTreeSet<AttrString>> = attrs.map(|vs| {
-            vs.iter()
-                .filter_map(|a| qs.get_schema().normalise_attr_if_exists(a.as_str()))
+        let r_attrs: Option<BTreeSet<Attribute>> = attrs.map(|vs| {
+            vs.into_iter()
+                .filter_map(|a| qs.get_schema().normalise_attr_if_exists(&a))
                 .collect()
         });
 
@@ -140,9 +140,9 @@ impl SearchEvent {
         attrs: Option<&[String]>,
         qs: &QueryServerReadTransaction,
     ) -> Result<Self, OperationError> {
-        let r_attrs: Option<BTreeSet<AttrString>> = attrs.map(|vs| {
-            vs.iter()
-                .filter_map(|a| qs.get_schema().normalise_attr_if_exists(a.as_str()))
+        let r_attrs: Option<BTreeSet<Attribute>> = attrs.map(|vs| {
+            vs.into_iter()
+                .filter_map(|a| qs.get_schema().normalise_attr_if_exists(&a))
                 .collect()
         });
 
@@ -292,7 +292,7 @@ impl SearchEvent {
         qs: &mut QueryServerReadTransaction,
         ident: Identity,
         lf: &LdapFilter,
-        attrs: Option<BTreeSet<AttrString>>,
+        attrs: Option<BTreeSet<Attribute>>,
     ) -> Result<Self, OperationError> {
         // Kanidm Filter from LdapFilter
         let f = Filter::from_ldap_ro(&ident, lf, qs)?;

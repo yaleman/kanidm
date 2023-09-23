@@ -268,7 +268,7 @@ impl LdapServer {
                         if a == "entrydn" || a == "dn" {
                             None
                         } else {
-                            Some(AttrString::from(ldap_vattr_map(a).unwrap_or(a)))
+                            Some(Attribute::try_from(ldap_vattr_map(a).unwrap_or(a)).ok()?)
                         }
                     })
                     .collect();

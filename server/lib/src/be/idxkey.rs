@@ -24,7 +24,14 @@ impl IdxKey {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(
+    Debug,
+    // Copy,
+    Clone,
+    PartialEq,
+    Eq,
+    Hash,
+)]
 pub struct IdxKeyRef<'a> {
     pub attr: Attribute,
     pub itype: &'a IndexType,
@@ -92,7 +99,16 @@ pub struct IdlCacheKey {
     pub k: String,
 }
 
-#[derive(Debug, Clone, Copy, Ord, PartialOrd, Eq, PartialEq, Hash)]
+#[derive(
+    Debug,
+    // Copy,
+    Clone,
+    Ord,
+    PartialOrd,
+    Eq,
+    PartialEq,
+    Hash,
+)]
 pub struct IdlCacheKeyRef<'a> {
     pub a: Attribute,
     pub i: IndexType,

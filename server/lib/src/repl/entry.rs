@@ -9,7 +9,7 @@ use std::collections::BTreeMap;
 pub enum State {
     Live {
         at: Cid,
-        changes: BTreeMap<AttrString, Cid>,
+        changes: BTreeMap<Attribute, Cid>,
     },
     Tombstone {
         at: Cid,
@@ -38,7 +38,7 @@ impl EntryChangeState {
     }
 
     pub fn new_without_schema(cid: &Cid, attrs: &Eattrs) -> Self {
-        let class = attrs.get(Attribute::Class.as_ref());
+        let class = attrs.get(&Attribute::Class);
         let st = if class
             .as_ref()
             .map(|c| c.contains(&EntryClass::Tombstone.to_partialvalue()))
@@ -93,7 +93,7 @@ impl EntryChangeState {
                 at: _,
                 ref mut changes,
             } => {
-                if let Some(change) = changes.get_mut(attr.as_ref()) {
+                if let Some(change) = changes.get_mut(&attr) {
                     // Update the cid.
                     if change != cid {
                         *change = cid.clone()
@@ -145,7 +145,7 @@ impl EntryChangeState {
     #[cfg(test)]
     pub(crate) fn get_attr_cid(&self, attr: &Attribute) -> Option<Cid> {
         match &self.st {
-            State::Live { at: _, changes } => changes.get(attr.as_ref()).map(|cid| cid.clone()),
+            State::Live { at: _, changes } => changes.get(&attr).cloned(),
             State::Tombstone { at: _ } => None,
         }
     }
@@ -164,7 +164,7 @@ impl EntryChangeState {
 
     pub fn retain<F>(&mut self, f: F)
     where
-        F: FnMut(&AttrString, &mut Cid) -> bool,
+        F: FnMut(&Attribute, &mut Cid) -> bool,
     {
         match &mut self.st {
             State::Live { at: _, changes } => changes.retain(f),
@@ -180,7 +180,7 @@ impl EntryChangeState {
         entry_id: u64,
         results: &mut Vec<Result<(), ConsistencyError>>,
     ) {
-        let class = expected_attrs.get(Attribute::Class.as_ref());
+        let class = expected_attrs.get(&Attribute::Class);
         let is_ts = class
             .as_ref()
             .map(|c| c.contains(&EntryClass::Tombstone.to_partialvalue()))
@@ -192,7 +192,7 @@ impl EntryChangeState {
 
                 // Check that all attrs from expected, have a value in our changes.
                 let inconsistent: Vec<_> = expected_attrs
-                    .keys()
+                    .keys().into_iter()
                     .filter(|attr| {
                         /*
                          * If the attribute is a replicated attribute, and it is NOT present
@@ -221,7 +221,8 @@ impl EntryChangeState {
                         };
 
                         // Only assert this when we actually have replication requirements.
-                        let desync = schema.is_replicated(attr) && !change_cid_present;
+                        // let attr = *attr.to_owned();
+                        let desync = schema.is_replicated(&attr) && !change_cid_present;
                         if desync {
                             debug!(%entry_id, %attr, %desync);
                         }

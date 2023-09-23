@@ -8,6 +8,8 @@ pub const DEFAULT_CLIENT_CONFIG_PATH: &str = "/etc/kanidm/config";
 pub const DEFAULT_CLIENT_CONFIG_PATH_HOME: &str = "~/.config/kanidm";
 
 /// IF YOU CHANGE THESE VALUES YOU BREAK EVERYTHING
+pub const ATTR_INVALID_ATTRIBUTE: &str = "invalid_attribute";
+
 pub const ATTR_ACCOUNT_EXPIRE: &str = "account_expire";
 pub const ATTR_ACCOUNT_VALID_FROM: &str = "account_valid_from";
 pub const ATTR_ACCOUNT: &str = "account";
@@ -145,6 +147,7 @@ pub const TEST_ATTR_TEST_ATTR: &str = "testattr";
 pub const TEST_ATTR_EXTRA: &str = "extra";
 pub const TEST_ATTR_NUMBER: &str = "testattrnumber";
 pub const TEST_ATTR_NOTALLOWED: &str = "notallowed";
+pub const TEST_SINGLE_VALUE_STRING: &str = "single_value";
 
 pub const OAUTH2_SCOPE_EMAIL: &str = ATTR_EMAIL;
 pub const OAUTH2_SCOPE_GROUPS: &str = "groups";

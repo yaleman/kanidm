@@ -12,7 +12,7 @@ use kanidm_proto::v1::Filter as ProtoFilter;
 #[derive(Debug, Clone)]
 pub struct AccessControlSearch {
     pub acp: AccessControlProfile,
-    pub attrs: BTreeSet<AttrString>,
+    pub attrs: BTreeSet<Attribute>,
 }
 
 impl AccessControlSearch {
