@@ -301,3 +301,8 @@ coverage/grcov:
 coverage: ## Run all the coverage tests
 coverage: coverage/test coverage/grcov
 	echo "Coverage report is in ./target/coverage/html/index.html"
+
+.PHONY: awfy
+awfy: ## Run the are-we-fast-yet benchmarks
+awfy:
+	RUST_LOG=ERROR cargo bench -p kanidmd_lib

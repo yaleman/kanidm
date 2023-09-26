@@ -88,7 +88,7 @@ pub async fn build_the_schema() -> QueryServer {
     qs.initialise_helper(duration_from_epoch_now())
         .await
         .expect("init failed!");
-    eprintln!("qs.initialise_helper done");
+    // eprintln!("qs.initialise_helper done");
     qs
 }
 
@@ -108,7 +108,7 @@ pub async fn build_schema_from_backup(bak: &DbBackup) -> QueryServer {
         .restore_from_dbbak(bak.clone())
         .expect("Failed to restore from backup");
 
-    eprintln!("be.new done");
+    // eprintln!("be.new done");
     // Init is called via the proc macro
     let qs = QueryServer::new(be, schema_outer, "example.com".to_string());
 
@@ -117,7 +117,7 @@ pub async fn build_schema_from_backup(bak: &DbBackup) -> QueryServer {
     qs.initialise_helper(duration_from_epoch_now())
         .await
         .expect("init failed!");
-    eprintln!("qs.initialise_helper done");
+    // eprintln!("qs.initialise_helper done");
     qs
 }
 

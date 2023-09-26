@@ -14,12 +14,17 @@ use kanidmd_lib::testkit::{build_the_schema, setup_idm_scaling_test};
 use kanidmd_lib::utils::duration_from_epoch_now;
 use kanidmd_lib::value::Value;
 
-pub fn scaling_user_create_single(c: &mut Criterion) {
-    let co = (Attribute::Class, EntryClass::Object.to_value());
-    let cp = (Attribute::Class, EntryClass::Person.to_value());
-    let ca = (Attribute::Class, EntryClass::Account.to_value());
-    let cd = (Attribute::Description, Value::new_utf8s("criterion"));
+// so we're doing things consistently
+fn get_base_entry_user() -> Entry<EntryInit, EntryNew> {
+    entry_init!(
+        (Attribute::Class, EntryClass::Object.to_value()),
+        (Attribute::Class, EntryClass::Person.to_value()),
+        (Attribute::Class, EntryClass::Account.to_value()),
+        (Attribute::Description, Value::new_utf8s("criterion"))
+    )
+}
 
+pub fn scaling_user_create_single(c: &mut Criterion) {
     let mut group = c.benchmark_group("user_create_single");
     group.sample_size(10);
     group.sampling_mode(SamplingMode::Flat);
@@ -39,7 +44,13 @@ pub fn scaling_user_create_single(c: &mut Criterion) {
 
     drop(rt);
 
-    for size in &[100, 250, 500, 1000, 1500, 2000, 5000, 10000] {
+    let base_user = get_base_entry_user();
+
+    for size in &[
+        // 100, 250, 500, 1000, 1500, 2000,
+        5000,
+        // 10000,
+    ] {
         group.throughput(Throughput::Elements(*size));
         group.bench_with_input(BenchmarkId::from_parameter(size), size, |b, &size| {
             b.iter_custom(|iters| {
@@ -62,16 +73,11 @@ pub fn scaling_user_create_single(c: &mut Criterion) {
                             for counter in 0..size {
                                 let mut idms_prox_write = idms.proxy_write(ct).await;
                                 let name = format!("testperson_{counter}");
-                                let e1 = entry_init!(
-                                    co.clone(),
-                                    cp.clone(),
-                                    ca.clone(),
-                                    (Attribute::Name, Value::new_iname(&name)),
-                                    (Attribute::DisplayName, Value::new_utf8s(&name)),
-                                    cd.clone()
-                                );
+                                let mut e1 = base_user.clone();
+                                e1.add_ava(Attribute::Name, Value::new_iname(&name));
+                                e1.add_ava(Attribute::DisplayName, Value::new_utf8s(&name));
 
-                                let cr = idms_prox_write.qs_write.internal_create(vec![e1.into()]);
+                                let cr = idms_prox_write.qs_write.internal_create(vec![e1]);
                                 if let Err(err) = cr {
                                     panic!("Something failed in the create: {:?}", err);
                                 }
@@ -96,7 +102,13 @@ pub fn scaling_user_create_batched(c: &mut Criterion) {
     group.warm_up_time(Duration::from_secs(5));
     group.measurement_time(Duration::from_secs(120));
 
-    for size in &[100, 250, 500, 1000, 1500, 2000, 5000, 10000] {
+    let entry = get_base_entry_user();
+
+    for size in &[
+        // 100, 250, 500, 1000, 1500, 2000,
+        5000,
+        // 10000
+    ] {
         group.throughput(Throughput::Elements(*size));
         group.bench_with_input(BenchmarkId::from_parameter(size), size, |b, &size| {
             b.iter_custom(|iters| {
@@ -106,14 +118,10 @@ pub fn scaling_user_create_batched(c: &mut Criterion) {
                 let data: Vec<_> = (0..size)
                     .map(|i| {
                         let name = format!("testperson_{i}");
-                        entry_init!(
-                            (Attribute::Class, EntryClass::Object.to_value()),
-                            (Attribute::Class, EntryClass::Person.to_value()),
-                            (Attribute::Class, EntryClass::Account.to_value()),
-                            (Attribute::Name, Value::new_iname(&name)),
-                            (Attribute::Description, Value::new_utf8s("criterion")),
-                            (Attribute::DisplayName, Value::new_utf8s(&name))
-                        )
+                        let mut entry = entry.clone();
+                        entry.add_ava(Attribute::Name, Value::new_iname(&name));
+                        entry.add_ava(Attribute::DisplayName, Value::new_utf8s(&name));
+                        entry
                     })
                     .collect();
 

@@ -18,9 +18,10 @@ path = "src/lib.rs"
 [[bench]]
 name = "scaling_10k"
 harness = false
-[[bench]]
-name = "scaling_10k_bencher"
-harness = false
+
+# [[bench]]
+# name = "scaling_10k_bencher"
+# harness = false
 
 [dependencies]
 base64 = { workspace = true }
