@@ -64,15 +64,15 @@ export KANIDM_CA_PATH
 export KANIDM_CONFIG_FILE
 
 # string things
-TEST_USER_NAME="testuser"
-TEST_USER_DISPLAY="Test Crab"
-TEST_GROUP="test_users"
-OAUTH2_RP_ID="test_oauth2"
-OAUTH2_RP_DISPLAY="test_oauth2"
+export TEST_USER_NAME="testuser"
+export TEST_USER_DISPLAY="Test Crab"
+export TEST_GROUP="test_users"
+export OAUTH2_RP_ID="test_oauth2"
+export OAUTH2_RP_DISPLAY="test_oauth2"
 
 # commands to run things
-KANIDM="cargo run ${BUILD_MODE} --manifest-path ../../Cargo.toml --bin kanidm -- "
-KANIDMD="cargo run ${BUILD_MODE} -p daemon --bin kanidmd -- "
+export KANIDM="cargo run ${BUILD_MODE} --manifest-path ../../Cargo.toml --bin kanidm -- "
+export KANIDMD="cargo run ${BUILD_MODE} -p daemon --bin kanidmd -- "
 
 if [ "${REMOVE_TEST_DB}" -eq 1 ]; then
     echo "Removing the existing DB!"
@@ -83,15 +83,17 @@ echo "Resetting the admin user..."
 ${KANIDMD} recover-account admin -o json 2>&1
 ADMIN_PASS_STR="$(${KANIDMD} recover-account admin -o json 2>&1)"
 ADMIN_PASS=$(echo "${ADMIN_PASS_STR}" | rg password | jq -r .password)
+export ADMIN_PASS
 if [ -z "${ADMIN_PASS}" ] || [ "${ADMIN_PASS}" == "null " ]; then
     echo "Failed to reset admin password!"
     echo "${ADMIN_PASS_STR}"
     exit 1
 fi
-
 echo "admin pass: '${ADMIN_PASS}'"
+
 echo "Resetting the idm_admin user..."
 IDM_ADMIN_PASS=$(${KANIDMD} recover-account idm_admin -o json 2>&1 | rg password | jq -r .password)
+export IDM_ADMIN_PASS
 if [ -z "${IDM_ADMIN_PASS}" ] || [ "${IDM_ADMIN_PASS}" == "null " ]; then
     echo "Failed to reset admin password!"
     exit 1
@@ -114,6 +116,9 @@ ${KANIDM} group add-members "${TEST_GROUP}" "${TEST_USER_NAME}" -D idm_admin
 
 echo "Enable experimental UI for admin idm_admin ${TEST_USER_NAME}"
 ${KANIDM} group add-members idm_ui_enable_experimental_features admin idm_admin "${TEST_USER_NAME}" -D idm_admin
+
+# set up a service account
+${KANIDM} service-account create test-service-account "Test Service Account" -D admin
 
 # create oauth2 rp
 echo "Creating the OAuth2 RP"

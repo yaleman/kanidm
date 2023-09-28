@@ -9,6 +9,19 @@ set -e
 
 WAIT_TIMER=5
 
+echo "Making sure kanidmd isn't already running..."
+killall kanidmd || true
+
+term_kanidmd() {
+
+    echo "Waiting ${WAIT_TIMER} seconds and terminating Kanidmd"
+    sleep "${WAIT_TIMER}"
+    if [ "$(pgrep kanidmd | wc -l)" -gt 0 ]; then
+        kill $(pgrep kanidmd)
+    fi
+
+}
+
 echo "Building release binaries..."
 cargo build --release --bin kanidm --bin kanidmd
 
@@ -58,14 +71,17 @@ while true; do
     fi
 done
 
-../../scripts/setup_dev_environment.sh
+../../scripts/setup_dev_environment.sh || term_kanidmd
 
+# make sure we can delete the test user that we created in the setup script
+${KANIDM} person delete testuser -D admin || term_kanidmd
 
-echo "Waiting ${WAIT_TIMER} seconds and terminating Kanidmd"
-sleep "${WAIT_TIMER}"
-if [ "$(pgrep kanidmd | wc -l)" -gt 0 ]; then
-    kill $(pgrep kanidmd)
-fi
+# delete a service account
+${KANIDM} service-account delete test-service-account -D admin   || term_kanidmd
+
+term_kanidmd
+
+echo "woo, things worked!"
 
 if [ -n "$CURRENT_DIR" ]; then
     cd "$CURRENT_DIR" || exit 1

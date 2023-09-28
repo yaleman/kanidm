@@ -33,6 +33,123 @@ use crate::value::{IndexType, PartialValue};
 
 const FILTER_DEPTH_MAX: usize = 16;
 
+macro_rules! fmt_f_andnot {
+    ($f:ident, $inputfilter:ident, $idx:ident) => {
+        $f.write_fmt(format_args!(" AND NOT {:?}", $inputfilter))?;
+        if let Some(idx) = $idx {
+            $f.write_fmt(format_args!(" (idx: {})", idx))?;
+        };
+    };
+    ($f:ident, $inputfilter:ident) => {
+        $f.write_fmt(format_args!(" AND NOT {:?}", $inputfilter))?;
+    };
+}
+
+macro_rules! fmt_f_and {
+    ($f:ident, $inputfilter:ident, $idx:ident) => {
+        if !$inputfilter.is_empty() {
+            let mut $inputfilter = $inputfilter.into_iter();
+            $f.write_fmt(format_args!("{:?}", $inputfilter.next().unwrap()))?;
+            while let Some(i) = $inputfilter.next() {
+                $f.write_fmt(format_args!(" AND {:?}", i))?;
+            }
+        }
+        if let Some(idx) = $idx {
+            $f.write_fmt(format_args!(" (idx: {})", idx))?;
+        }
+    };
+
+    ($f:ident, $inputfilter:ident) => {
+        if !$inputfilter.is_empty() {
+            let mut $inputfilter = $inputfilter.into_iter();
+            $f.write_fmt(format_args!("{:?}", $inputfilter.next().unwrap()))?;
+            while let Some(i) = $inputfilter.next() {
+                $f.write_fmt(format_args!(" AND {:?}", i))?;
+            }
+        }
+    };
+}
+macro_rules! fmt_f_or {
+    ($f:ident, $inputfilter:ident, $idx:ident) => {
+        fmt_f_or!($f, $inputfilter);
+        if let Some(idx) = $idx {
+            $f.write_fmt(format_args!(" (idx: {})", idx))?;
+        }
+    };
+    ($f:ident, $inputfilter:ident) => {
+        if !$inputfilter.is_empty() {
+            let mut $inputfilter = $inputfilter.into_iter();
+            $f.write_fmt(format_args!("{:?}", $inputfilter.next().unwrap()))?;
+            while let Some(i) = $inputfilter.next() {
+                $f.write_str(" OR ")?;
+                $f.write_fmt(format_args!("{:?}", i))?;
+            }
+        }
+    };
+}
+
+macro_rules! fmt_f_eq {
+    ($f:ident, $attr:ident, $val:ident, $idx:ident) => {
+        fmt_f_eq!($f, $attr, $val);
+        if let Some(idx) = $idx {
+            $f.write_fmt(format_args!(" (idx: {})", idx))?;
+        };
+    };
+    ($f:ident, $attr:ident, $val:ident) => {
+        $f.write_fmt(format_args!("{} == {:?}", $attr, $val))?;
+    };
+    ($f:ident, $attr:ident) => {
+        $f.write_fmt(format_args!("Attr == {}", $attr))?;
+    };
+}
+
+macro_rules! fmt_f_sub {
+    ($f:ident, $attr:ident, $val:ident, $idx:ident) => {
+        fmt_f_sub!($f, $attr, $val);
+        if let Some(idx) = $idx {
+            $f.write_fmt(format_args!(" (idx: {})", idx))?;
+        };
+    };
+    ($f:ident, $attr:ident, $val:ident) => {
+        $f.write_fmt(format_args!("{} - {:?}", $attr, $val))?;
+    };
+}
+
+macro_rules! fmt_f_lt {
+    ($f:ident, $attr:ident, $val:ident, $idx:ident) => {
+        fmt_f_lt!($f, $attr, $val);
+        if let Some(idx) = $idx {
+            $f.write_fmt(format_args!(" (idx: {})", idx))?;
+        };
+    };
+    ($f:ident, $attr:ident, $val:ident) => {
+        $f.write_fmt(format_args!("{} < {:?}", $attr, $val))?;
+    };
+}
+macro_rules! fmt_f_inc {
+    ($f:ident, $attr:ident, $idx:ident) => {
+        fmt_f_inc!($f, $attr);
+        if let Some(idx) = $idx {
+            $f.write_fmt(format_args!(" (idx: {})", idx))?;
+        };
+    };
+    ($f:ident, $attr:ident) => {
+        $f.write_fmt(format_args!("Includes: {:?}", $attr))?;
+    };
+}
+
+macro_rules! fmt_f_pres {
+    ($f:ident, $attr:ident, $idx:ident) => {
+        $f.write_fmt(format_args!("Present: {}", $attr))?;
+        if let Some(idx) = $idx {
+            $f.write_fmt(format_args!(" (idx: {})", idx))?;
+        };
+    };
+    ($f:ident, $attr:ident) => {
+        $f.write_fmt(format_args!("Present {}", $attr))?;
+    };
+}
+
 // Default filter is safe, ignores all hidden types!
 
 // This is &Value so we can lazy const then clone, but perhaps we can reconsider
@@ -111,7 +228,7 @@ pub enum FC<'a> {
 }
 
 /// This is the filters internal representation
-#[derive(Debug, Clone, Hash, PartialEq, PartialOrd, Ord, Eq)]
+#[derive(Clone, Hash, PartialEq, PartialOrd, Ord, Eq)]
 enum FilterComp {
     // This is attr - value
     Eq(AttrString, PartialValue),
@@ -127,6 +244,40 @@ enum FilterComp {
     // Not(Box<FilterComp>),
 }
 
+impl std::fmt::Debug for FilterComp {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("FilterComp[")?;
+        match self {
+            Self::Eq(arg0, arg1) => {
+                fmt_f_eq!(f, arg0, arg1);
+            }
+            Self::Sub(arg0, arg1) => {
+                fmt_f_sub!(f, arg0, arg1);
+            }
+            Self::And(arg0) => {
+                fmt_f_and!(f, arg0);
+            }
+            Self::AndNot(arg0) => {
+                fmt_f_andnot!(f, arg0);
+            }
+            Self::Or(arg0) => {
+                fmt_f_or!(f, arg0);
+            }
+            Self::LessThan(arg0, arg1) => {
+                fmt_f_lt!(f, arg0, arg1);
+            }
+            Self::SelfUuid => f.write_str("SelfUuid")?,
+            Self::Pres(arg0) => {
+                fmt_f_pres!(f, arg0);
+            }
+            Self::Inclusion(arg0) => {
+                fmt_f_inc!(f, arg0);
+            }
+        }
+        f.write_str("]")
+    }
+}
+
 /// This is the fully resolved internal representation. Note the lack of Not and selfUUID
 /// because these are resolved into And(Pres(class), AndNot(term)) and Eq(uuid, ...).
 /// Importantly, we make this accessible to Entry so that it can then match on filters
@@ -137,7 +288,7 @@ enum FilterComp {
 /// where small value - faster index, larger value - slower index. This metadata is extremely
 /// important for the query optimiser to make decisions about how to re-arrange queries
 /// correctly.
-#[derive(Debug, Clone, Eq)]
+#[derive(Clone, Eq)]
 pub enum FilterResolved {
     // This is attr - value - indexed slope factor
     Eq(AttrString, PartialValue, Option<NonZeroU8>),
@@ -149,6 +300,66 @@ pub enum FilterResolved {
     // All terms must have 1 or more items, or the inclusion is false!
     Inclusion(Vec<FilterResolved>, Option<NonZeroU8>),
     AndNot(Box<FilterResolved>, Option<NonZeroU8>),
+}
+
+impl std::fmt::Debug for FilterResolved {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("Resolved[")?;
+        match self {
+            Self::Eq(arg0, arg1, arg2) => {
+                fmt_f_eq!(f, arg0, arg1, arg2);
+            }
+            Self::Sub(arg0, arg1, arg2) => {
+                fmt_f_sub!(f, arg0, arg1, arg2);
+            }
+            Self::And(arg0, arg1) => {
+                fmt_f_and!(f, arg0, arg1);
+            }
+            Self::AndNot(arg0, arg1) => {
+                fmt_f_andnot!(f, arg0, arg1);
+            }
+            Self::Or(arg0, arg1) => {
+                fmt_f_or!(f, arg0, arg1);
+            }
+            Self::LessThan(arg0, arg1, arg2) => {
+                fmt_f_lt!(f, arg0, arg1, arg2);
+            }
+
+            Self::Pres(arg0, arg1) => {
+                fmt_f_pres!(f, arg0, arg1);
+            }
+            Self::Inclusion(arg0, arg1) => {
+                fmt_f_inc!(f, arg0, arg1);
+            }
+        }
+        f.write_str("]")
+    }
+}
+
+#[test]
+fn test_debug_filterresolved() {
+    let filters = vec![
+        FilterResolved::Eq("test".into(), PartialValue::Uint32(5), None),
+        FilterResolved::Sub("test".into(), PartialValue::Iutf8("TestValue".into()), None),
+        FilterResolved::LessThan("test".into(), PartialValue::Iutf8("TestValue".into()), None),
+        FilterResolved::And(
+            vec![
+                FilterResolved::Eq("test".into(), PartialValue::Iutf8("TestValue".into()), None),
+                FilterResolved::Eq("test2".into(), PartialValue::Iutf8("cheese".into()), None),
+            ],
+            None,
+        ),
+        FilterResolved::Or(
+            vec![
+                FilterResolved::Eq("test".into(), PartialValue::Iutf8("TestValue".into()), None),
+                FilterResolved::Eq("test2".into(), PartialValue::Iutf8("cheese".into()), None),
+            ],
+            None,
+        ),
+    ];
+    for filter in filters {
+        println!("{:?}", filter);
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -166,7 +377,6 @@ pub struct FilterValidResolved {
     inner: FilterResolved,
 }
 
-#[derive(Debug)]
 pub enum FilterPlan {
     Invalid,
     EqIndexed(AttrString, String),
@@ -191,6 +401,49 @@ pub enum FilterPlan {
     AndNot(Box<FilterPlan>),
     InclusionInvalid(Vec<FilterPlan>),
     InclusionIndexed(Vec<FilterPlan>),
+}
+
+impl std::fmt::Debug for FilterPlan {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("Resolved[")?;
+        match self {
+            Self::EqIndexed(arg0, arg1) => {
+                fmt_f_eq!(f, arg0, arg1);
+            }
+            Self::EqUnindexed(arg0) => {
+                fmt_f_eq!(f, arg0);
+            }
+
+            Self::AndNot(arg0) => {
+                fmt_f_andnot!(f, arg0);
+            }
+            _ => {}
+            // FilterPlan::Invalid => todo!(),
+            // FilterPlan::EqIndexed(_, _) => todo!(),
+            // FilterPlan::EqUnindexed(_) => todo!(),
+            // FilterPlan::EqCorrupt(_) => todo!(),
+            // FilterPlan::SubIndexed(_, _) => todo!(),
+            // FilterPlan::SubUnindexed(_) => todo!(),
+            // FilterPlan::SubCorrupt(_) => todo!(),
+            // FilterPlan::PresIndexed(_) => todo!(),
+            // FilterPlan::PresUnindexed(_) => todo!(),
+            // FilterPlan::PresCorrupt(_) => todo!(),
+            // FilterPlan::LessThanUnindexed(_) => todo!(),
+            // FilterPlan::OrUnindexed(_) => todo!(),
+            // FilterPlan::OrIndexed(_) => todo!(),
+            // FilterPlan::OrPartial(_) => todo!(),
+            // FilterPlan::OrPartialThreshold(_) => todo!(),
+            // FilterPlan::AndEmptyCand(_) => todo!(),
+            // FilterPlan::AndIndexed(_) => todo!(),
+            // FilterPlan::AndUnindexed(_) => todo!(),
+            // FilterPlan::AndPartial(_) => todo!(),
+            // FilterPlan::AndPartialThreshold(_) => todo!(),
+            // FilterPlan::AndNot(_) => todo!(),
+            // FilterPlan::InclusionInvalid(_) => todo!(),
+            // FilterPlan::InclusionIndexed(_) => todo!(),
+        }
+        f.write_str("]")
+    }
 }
 
 /// A `Filter` is a logical set of assertions about the state of an [`Entry`] and
