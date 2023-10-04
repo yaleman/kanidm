@@ -243,6 +243,7 @@ async fn repl_run_consumer(
     error!("Unable to complete replication successfully.");
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn repl_task(
     origin: Url,
     client_key: PKey<Private>,
@@ -626,7 +627,7 @@ async fn repl_acceptor(
                             respond
                         } => {
                             let _span = debug_span!("supplier_accept_loop", uuid = ?eventid).entered();
-                            if let Err(_) = respond.send(server_cert.clone()) {
+                            if respond.send(server_cert.clone()).is_err() {
                                 warn!("Server certificate was requested, but requsetor disconnected");
                             } else {
                                 trace!("Sent server certificate via control channel");
@@ -654,8 +655,8 @@ async fn repl_acceptor(
                                     error!(?err, "failed to renew server certificate");
                                 }
 
-                                if let Err(_) = respond.send(success) {
-                                    warn!("Server certificate renewal was requested, but requsetor disconnected");
+                                if respond.send(success).is_err() {
+                                    warn!("Server certificate renewal was requested, but requestor disconnected!");
                                 } else {
                                     trace!("Sent server certificate renewal status via control channel");
                                 }
@@ -683,7 +684,7 @@ async fn repl_acceptor(
                             let clone_tls_acceptor = tls_acceptor.clone();
                             // We don't care about the join handle here - once a client connects
                             // it sticks to whatever ssl settings it had at launch.
-                            let _ = tokio::spawn(
+                            tokio::spawn(
                                 handle_repl_conn(max_frame_bytes, tcpstream, client_socket_addr, clone_tls_acceptor, clone_idms)
                             );
                         }

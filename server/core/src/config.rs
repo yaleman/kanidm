@@ -302,6 +302,12 @@ impl fmt::Display for Configuration {
     }
 }
 
+impl Default for Configuration {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Configuration {
     pub fn new() -> Self {
         Configuration {
