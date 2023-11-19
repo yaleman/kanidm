@@ -500,7 +500,6 @@ class KanidmClient:
         grouplist = GroupList.model_validate(json_lib.loads(response.content))
         return [group.as_groupinfo() for group in grouplist.root]
 
-
     async def service_account_create(
         self, name: str, displayname: str
     ) -> ClientResponse:
@@ -741,7 +740,7 @@ class KanidmClient:
             json=[new_basedn],
         )
 
-     async def oauth2_rs_list(self) -> ClientResponse:
+    async def oauth2_rs_list(self) -> ClientResponse:
         """gets the list of oauth2 resource servers"""
         endpoint = "/v1/oauth2"
 
@@ -778,7 +777,7 @@ class KanidmClient:
         return await self.call_post(endpoint, json=payload)
 
     async def oauth2_rs_get_basic_secret(self, rs_name: str) -> ClientResponse:
-        """ get the basic secret for an OAuth2 resource server """
+        """get the basic secret for an OAuth2 resource server"""
         endpoint = f"/v1/oauth2/{rs_name}/_basic_secret"
 
         return await self.call_get(endpoint)
@@ -812,7 +811,6 @@ class KanidmClient:
             "displayname": [displayname],
         }
         return await self.call_post(endpoint, json=payload)
-
 
     async def oauth2_rs_update(
         self,
