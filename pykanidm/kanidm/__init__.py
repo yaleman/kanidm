@@ -500,71 +500,6 @@ class KanidmClient:
         grouplist = GroupList.model_validate(json_lib.loads(response.content))
         return [group.as_groupinfo() for group in grouplist.root]
 
-    async def oauth2_rs_list(self) -> ClientResponse:
-        """gets the list of oauth2 resource servers"""
-        endpoint = "/v1/oauth2"
-
-        resp = await self.call_get(endpoint)
-        return resp
-
-    async def oauth2_rs_get(self, rs_name: str) -> ClientResponse:
-        """get an OAuth2 client"""
-        endpoint = f"/v1/oauth2/{rs_name}"
-
-        return await self.call_get(endpoint)
-
-    async def oauth2_rs_delete(self, rs_name: str) -> ClientResponse:
-        """delete an oauth2 resource server"""
-        endpoint = f"/v1/oauth2/{rs_name}"
-
-        return await self.call_delete(endpoint)
-
-    async def oauth2_rs_basic_create(
-        self, rs_name: str, displayname: str, origin: str
-    ) -> ClientResponse:
-        """Create a basic OAuth2 RS"""
-
-        self._validate_is_valid_origin_url(origin)
-
-        endpoint = "/v1/oauth2/_basic"
-        payload = {
-            "attrs": {
-                "oauth2_rs_name": [rs_name],
-                "oauth2_rs_origin": [origin],
-                "displayname": [displayname],
-            }
-        }
-        return await self.call_post(endpoint, json=payload)
-
-    @classmethod
-    def _validate_is_valid_origin_url(cls, url: str) -> None:
-        """Check if it's HTTPS and a valid URL as far as we can tell"""
-        parsed_url = yarl.URL(url)
-        if parsed_url.scheme not in ["http", "https"]:
-            raise ValueError(
-                f"Invalid scheme: {parsed_url.scheme} for origin URL: {url}"
-            )
-        if parsed_url.host is None:
-            raise ValueError(f"Empty/invalid host for origin URL: {url}")
-        if parsed_url.user is not None:
-            raise ValueError(f"Can't have username in origin URL: {url}")
-        if parsed_url.password is not None:
-            raise ValueError(f"Can't have password in origin URL: {url}")
-
-    async def oauth2_rs_public_create(
-        self, rs_name: str, displayname: str, origin: str
-    ) -> ClientResponse:
-        """Create a public OAuth2 RS"""
-
-        self._validate_is_valid_origin_url(origin)
-
-        endpoint = "/v1/oauth2/_public"
-        payload = {
-            "oauth2_rs_name": [rs_name],
-            "oauth2_rs_origin": [origin],
-            "displayname": [displayname],
-        }
-        return await self.call_post(endpoint, json=payload)
 
     async def service_account_create(
         self, name: str, displayname: str
@@ -805,6 +740,79 @@ class KanidmClient:
             "/v1/domain/_attr/domain_ldap_basedn",
             json=[new_basedn],
         )
+
+     async def oauth2_rs_list(self) -> ClientResponse:
+        """gets the list of oauth2 resource servers"""
+        endpoint = "/v1/oauth2"
+
+        resp = await self.call_get(endpoint)
+        return resp
+
+    async def oauth2_rs_get(self, rs_name: str) -> ClientResponse:
+        """get an OAuth2 client"""
+        endpoint = f"/v1/oauth2/{rs_name}"
+
+        return await self.call_get(endpoint)
+
+    async def oauth2_rs_delete(self, rs_name: str) -> ClientResponse:
+        """delete an oauth2 resource server"""
+        endpoint = f"/v1/oauth2/{rs_name}"
+
+        return await self.call_delete(endpoint)
+
+    async def oauth2_rs_basic_create(
+        self, rs_name: str, displayname: str, origin: str
+    ) -> ClientResponse:
+        """Create a basic OAuth2 RS"""
+
+        self._validate_is_valid_origin_url(origin)
+
+        endpoint = "/v1/oauth2/_basic"
+        payload = {
+            "attrs": {
+                "oauth2_rs_name": [rs_name],
+                "oauth2_rs_origin": [origin],
+                "displayname": [displayname],
+            }
+        }
+        return await self.call_post(endpoint, json=payload)
+
+    async def oauth2_rs_get_basic_secret(self, rs_name: str) -> ClientResponse:
+        """ get the basic secret for an OAuth2 resource server """
+        endpoint = f"/v1/oauth2/{rs_name}/_basic_secret"
+
+        return await self.call_get(endpoint)
+
+    @classmethod
+    def _validate_is_valid_origin_url(cls, url: str) -> None:
+        """Check if it's HTTPS and a valid URL as far as we can tell"""
+        parsed_url = yarl.URL(url)
+        if parsed_url.scheme not in ["http", "https"]:
+            raise ValueError(
+                f"Invalid scheme: {parsed_url.scheme} for origin URL: {url}"
+            )
+        if parsed_url.host is None:
+            raise ValueError(f"Empty/invalid host for origin URL: {url}")
+        if parsed_url.user is not None:
+            raise ValueError(f"Can't have username in origin URL: {url}")
+        if parsed_url.password is not None:
+            raise ValueError(f"Can't have password in origin URL: {url}")
+
+    async def oauth2_rs_public_create(
+        self, rs_name: str, displayname: str, origin: str
+    ) -> ClientResponse:
+        """Create a public OAuth2 RS"""
+
+        self._validate_is_valid_origin_url(origin)
+
+        endpoint = "/v1/oauth2/_public"
+        payload = {
+            "oauth2_rs_name": [rs_name],
+            "oauth2_rs_origin": [origin],
+            "displayname": [displayname],
+        }
+        return await self.call_post(endpoint, json=payload)
+
 
     async def oauth2_rs_update(
         self,
