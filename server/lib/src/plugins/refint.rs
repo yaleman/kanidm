@@ -500,15 +500,7 @@ mod tests {
     // The create references a uuid that does exist - validate
     #[test]
     fn test_create_uuid_reference_exist() {
-        let ea = entry_init!(
-            (Attribute::Class, EntryClass::Group.to_value()),
-            (Attribute::Name, Value::new_iname("testgroup_a")),
-            (Attribute::Description, Value::new_utf8s("testgroup")),
-            (
-                Attribute::Uuid,
-                Value::Uuid(Uuid::parse_str(TEST_TESTGROUP_A_UUID).unwrap())
-            )
-        );
+        let ea = TESTGROUP_ENTRY_A.clone();
         let eb = entry_init!(
             (Attribute::Class, EntryClass::Group.to_value()),
             (Attribute::Name, Value::new_iname("testgroup_b")),
@@ -544,16 +536,24 @@ mod tests {
     fn test_create_uuid_reference_self() {
         let preload: Vec<Entry<EntryInit, EntryNew>> = Vec::new();
 
-        let e: Entry<EntryInit, EntryNew> = Entry::unsafe_from_entry_str(
-            r#"{
-            "attrs": {
-                "class": ["group"],
-                "name": ["testgroup"],
-                "description": ["testgroup"],
-                "uuid": ["8cef42bc-2cac-43e4-96b3-8f54561885ca"],
-                "member": ["8cef42bc-2cac-43e4-96b3-8f54561885ca"]
-            }
-        }"#,
+        let e: Entry<EntryInit, EntryNew> = entry_init!(
+            (Attribute::Class, EntryClass::Group.to_value()),
+            (Attribute::Name, Value::new_iname("testgroup")),
+            (Attribute::Description, Value::new_utf8s("testgroup")),
+            (
+                Attribute::Uuid,
+                Value::Uuid(
+                    Uuid::from_str(TEST_TESTGROUP_A_UUID)
+                        .expect("test uuid we hard coded failed...")
+                )
+            ),
+            (
+                Attribute::Member,
+                Value::Refer(
+                    Uuid::from_str(TEST_TESTGROUP_A_UUID)
+                        .expect("test uuid we hard coded failed...")
+                )
+            )
         );
 
         let create = vec![e];
@@ -715,15 +715,7 @@ mod tests {
     // Test that deleted entries can not be referenced
     #[test]
     fn test_modify_reference_deleted() {
-        let ea = entry_init!(
-            (Attribute::Class, EntryClass::Group.to_value()),
-            (Attribute::Name, Value::new_iname("testgroup_a")),
-            (Attribute::Description, Value::new_utf8s("testgroup")),
-            (
-                Attribute::Uuid,
-                Value::Uuid(Uuid::from_str(TEST_TESTGROUP_A_UUID).unwrap())
-            )
-        );
+        let ea = TESTGROUP_ENTRY_A.clone();
         let eb = entry_init!(
             (Attribute::Class, EntryClass::Group.to_value()),
             (Attribute::Name, Value::new_iname("testgroup_b")),
@@ -764,15 +756,7 @@ mod tests {
     // This is the valid case, where the reference is MAY.
     #[test]
     fn test_delete_remove_referent_valid() {
-        let ea: Entry<EntryInit, EntryNew> = entry_init!(
-            (Attribute::Class, EntryClass::Group.to_value()),
-            (Attribute::Name, Value::new_iname("testgroup_a")),
-            (Attribute::Description, Value::new_utf8s("testgroup")),
-            (
-                Attribute::Uuid,
-                Value::Uuid(Uuid::parse_str(TEST_TESTGROUP_A_UUID).unwrap())
-            )
-        );
+        let ea = TESTGROUP_ENTRY_A.clone();
         let eb: Entry<EntryInit, EntryNew> = entry_init!(
             (Attribute::Class, EntryClass::Group.to_value()),
             (Attribute::Name, Value::new_iname("testgroup_b")),
@@ -808,15 +792,7 @@ mod tests {
     // Delete of something that holds references.
     #[test]
     fn test_delete_remove_referee() {
-        let ea: Entry<EntryInit, EntryNew> = entry_init!(
-            (Attribute::Class, EntryClass::Group.to_value()),
-            (Attribute::Name, Value::new_iname("testgroup_a")),
-            (Attribute::Description, Value::new_utf8s("testgroup")),
-            (
-                Attribute::Uuid,
-                Value::Uuid(Uuid::parse_str(TEST_TESTGROUP_A_UUID).unwrap())
-            )
-        );
+        let ea = TESTGROUP_ENTRY_A.clone();
         let eb: Entry<EntryInit, EntryNew> = entry_init!(
             (Attribute::Class, EntryClass::Group.to_value()),
             (Attribute::Name, Value::new_iname("testgroup_b")),
