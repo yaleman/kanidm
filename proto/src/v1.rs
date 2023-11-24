@@ -333,7 +333,9 @@ pub struct Claim {
     // pub expiry: DateTime
 }
 
-#[derive(Debug, Serialize, Deserialize, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
+#[derive(
+    Debug, Serialize, Deserialize, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash, ToSchema,
+)]
 #[serde(rename_all = "lowercase")]
 #[derive(TryFromPrimitive)]
 #[repr(u16)]

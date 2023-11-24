@@ -186,8 +186,7 @@ impl Modify for SecurityAddon {
             scim_v1::ScimSyncState,
             scim_v1::ScimSyncRequest,
             scim_v1::ScimSyncRetentionMode,
-            // TODO: can't add Entry/ProtoEntry to schema as this was only recently supported utoipa v3.5.0 doesn't support it - ref <https://github.com/juhaku/utoipa/pull/756/files>
-            // v1::Entry,
+            v1::Entry,
             v1::AccountUnixExtend,
             v1::ApiToken,
             v1::ApiTokenGenerate,
@@ -199,9 +198,11 @@ impl Modify for SecurityAddon {
             v1::CreateRequest,
             v1::CredentialDetail,
             v1::CredentialStatus,
+            v1::CUCredState,
             v1::CUIntentToken,
             v1::CUSessionToken,
             v1::CUStatus,
+            v1::CURegWarning,
             v1::DeleteRequest,
             v1::Group,
             v1::GroupUnixExtend,
@@ -238,6 +239,7 @@ impl Modify for SecurityAddon {
             v1::SchemaError,
             v1::PluginError,
             v1::PasswordFeedback,
+            v1::UiHint,
 
             kanidm_proto::internal::IdentifyUserRequest,
             // terrible workaround for other things
