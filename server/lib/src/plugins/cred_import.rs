@@ -133,8 +133,11 @@ impl CredImport {
 
 #[cfg(test)]
 mod tests {
+    use std::str::FromStr;
+
     use crate::credential::totp::{Totp, TOTP_DEFAULT_STEP};
     use crate::credential::{Credential, CredentialType};
+    use crate::prelude::test_constants::TEST_TESTGROUP_A_UUID;
     use crate::prelude::*;
     use kanidm_lib_crypto::CryptoPolicy;
     use kanidm_proto::v1::PluginError;
@@ -273,7 +276,9 @@ mod tests {
             |_| {},
             |qs: &mut QueryServerWriteTransaction| {
                 let e = qs
-                    .internal_search_uuid(uuid!("d2b496bd-8493-47b7-8142-f568b5cf47ee"))
+                    .internal_search_uuid(
+                        Uuid::from_str(TEST_TESTGROUP_A_UUID).expect("Failed to uuid"),
+                    )
                     .expect("failed to get entry");
                 let c = e
                     .get_ava_single_credential(Attribute::PrimaryCredential)

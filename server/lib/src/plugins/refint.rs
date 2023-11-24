@@ -449,10 +449,13 @@ impl ReferentialIntegrity {
 
 #[cfg(test)]
 mod tests {
+    use std::str::FromStr;
+
     use kanidm_proto::v1::Filter as ProtoFilter;
     use kanidm_proto::v1::PluginError;
 
     use crate::event::CreateEvent;
+    use crate::prelude::test_constants::*;
     use crate::prelude::*;
     use crate::value::{Oauth2Session, Session, SessionState};
     use time::OffsetDateTime;
@@ -460,8 +463,13 @@ mod tests {
     use crate::credential::Credential;
     use kanidm_lib_crypto::CryptoPolicy;
 
-    const TEST_TESTGROUP_A_UUID: &str = "d2b496bd-8493-47b7-8142-f568b5cf47ee";
-    const TEST_TESTGROUP_B_UUID: &str = "8cef42bc-2cac-43e4-96b3-8f54561885ca";
+    lazy_static! {
+        static ref TESTGROUP_ENTRY_B: EntryInitNew = entry_init!(
+            (Attribute::Class, EntryClass::Group.to_value()),
+            (Attribute::Name, Value::new_iname("testgroup_b")),
+            (Attribute::Description, Value::new_utf8s("testgroup"))
+        );
+    }
 
     // The create references a uuid that doesn't exist - reject
     #[test]
@@ -570,26 +578,9 @@ mod tests {
     // Modify references a different object - allow
     #[test]
     fn test_modify_uuid_reference_exist() {
-        let ea: Entry<EntryInit, EntryNew> = Entry::unsafe_from_entry_str(
-            r#"{
-            "attrs": {
-                "class": ["group"],
-                "name": ["testgroup_a"],
-                "description": ["testgroup"],
-                "uuid": ["d2b496bd-8493-47b7-8142-f568b5cf47ee"]
-            }
-        }"#,
-        );
+        let ea = TESTGROUP_ENTRY_A.clone();
 
-        let eb: Entry<EntryInit, EntryNew> = Entry::unsafe_from_entry_str(
-            r#"{
-            "attrs": {
-                "class": ["group"],
-                "name": ["testgroup_b"],
-                "description": ["testgroup"]
-            }
-        }"#,
-        );
+        let eb = TESTGROUP_ENTRY_B.clone();
 
         let preload = vec![ea, eb];
 
@@ -613,16 +604,7 @@ mod tests {
     // Modify reference something that doesn't exist - must be rejected
     #[test]
     fn test_modify_uuid_reference_not_exist() {
-        let eb: Entry<EntryInit, EntryNew> = Entry::unsafe_from_entry_str(
-            r#"{
-            "attrs": {
-                "class": ["group"],
-                "name": ["testgroup_b"],
-                "description": ["testgroup"]
-            }
-        }"#,
-        );
-
+        let eb = TESTGROUP_ENTRY_B.clone();
         let preload = vec![eb];
 
         run_modify_test!(
@@ -648,26 +630,8 @@ mod tests {
     // we fail.
     #[test]
     fn test_modify_uuid_reference_partial_not_exist() {
-        let ea: Entry<EntryInit, EntryNew> = Entry::unsafe_from_entry_str(
-            r#"{
-            "attrs": {
-                "class": ["group"],
-                "name": ["testgroup_a"],
-                "description": ["testgroup"],
-                "uuid": ["d2b496bd-8493-47b7-8142-f568b5cf47ee"]
-            }
-        }"#,
-        );
-
-        let eb: Entry<EntryInit, EntryNew> = Entry::unsafe_from_entry_str(
-            r#"{
-            "attrs": {
-                "class": ["group"],
-                "name": ["testgroup_b"],
-                "description": ["testgroup"]
-            }
-        }"#,
-        );
+        let ea = TESTGROUP_ENTRY_A.clone();
+        let eb = TESTGROUP_ENTRY_B.clone();
 
         let preload = vec![ea, eb];
 
@@ -696,26 +660,16 @@ mod tests {
     // Modify removes the reference to an entry
     #[test]
     fn test_modify_remove_referee() {
-        let ea: Entry<EntryInit, EntryNew> = Entry::unsafe_from_entry_str(
-            r#"{
-            "attrs": {
-                "class": ["group"],
-                "name": ["testgroup_a"],
-                "description": ["testgroup"],
-                "uuid": ["d2b496bd-8493-47b7-8142-f568b5cf47ee"]
-            }
-        }"#,
-        );
+        let ea = TESTGROUP_ENTRY_A.clone();
 
-        let eb: Entry<EntryInit, EntryNew> = Entry::unsafe_from_entry_str(
-            r#"{
-            "attrs": {
-                "class": ["group"],
-                "name": ["testgroup_b"],
-                "description": ["testgroup"],
-                "member": ["d2b496bd-8493-47b7-8142-f568b5cf47ee"]
-            }
-        }"#,
+        let eb = entry_init!(
+            (Attribute::Class, EntryClass::Group.to_value()),
+            (Attribute::Name, Value::new_iname("testgroup_b")),
+            (Attribute::Description, Value::new_utf8s("testgroup")),
+            (
+                Attribute::Member,
+                Value::Refer(Uuid::parse_str(TEST_TESTGROUP_A_UUID).unwrap())
+            )
         );
 
         let preload = vec![ea, eb];
@@ -737,16 +691,7 @@ mod tests {
     // Modify adds reference to self - allow
     #[test]
     fn test_modify_uuid_reference_self() {
-        let ea: Entry<EntryInit, EntryNew> = Entry::unsafe_from_entry_str(
-            r#"{
-            "attrs": {
-                "class": ["group"],
-                "name": ["testgroup_a"],
-                "description": ["testgroup"],
-                "uuid": ["d2b496bd-8493-47b7-8142-f568b5cf47ee"]
-            }
-        }"#,
-        );
+        let ea = TESTGROUP_ENTRY_A.clone();
 
         let preload = vec![ea];
 
@@ -770,25 +715,19 @@ mod tests {
     // Test that deleted entries can not be referenced
     #[test]
     fn test_modify_reference_deleted() {
-        let ea: Entry<EntryInit, EntryNew> = Entry::unsafe_from_entry_str(
-            r#"{
-            "attrs": {
-                "class": ["group"],
-                "name": ["testgroup_a"],
-                "description": ["testgroup"],
-                "uuid": ["d2b496bd-8493-47b7-8142-f568b5cf47ee"]
-            }
-        }"#,
+        let ea = entry_init!(
+            (Attribute::Class, EntryClass::Group.to_value()),
+            (Attribute::Name, Value::new_iname("testgroup_a")),
+            (Attribute::Description, Value::new_utf8s("testgroup")),
+            (
+                Attribute::Uuid,
+                Value::Uuid(Uuid::from_str(TEST_TESTGROUP_A_UUID).unwrap())
+            )
         );
-
-        let eb: Entry<EntryInit, EntryNew> = Entry::unsafe_from_entry_str(
-            r#"{
-            "attrs": {
-                "class": ["group"],
-                "name": ["testgroup_b"],
-                "description": ["testgroup"]
-            }
-        }"#,
+        let eb = entry_init!(
+            (Attribute::Class, EntryClass::Group.to_value()),
+            (Attribute::Name, Value::new_iname("testgroup_b")),
+            (Attribute::Description, Value::new_utf8s("testgroup"))
         );
 
         let preload = vec![ea, eb];

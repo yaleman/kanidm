@@ -5,6 +5,8 @@ pub mod entries;
 pub mod groups;
 pub mod schema;
 pub mod system_config;
+#[cfg(test)]
+pub(crate) mod test_constants;
 pub mod uuids;
 pub mod values;
 

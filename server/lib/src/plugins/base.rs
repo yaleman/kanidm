@@ -240,6 +240,7 @@ impl Plugin for Base {
 
 #[cfg(test)]
 mod tests {
+    use crate::prelude::test_constants::TESTGROUP_ENTRY_A;
     use crate::prelude::*;
     use kanidm_proto::v1::PluginError;
     use std::sync::Arc;
@@ -567,16 +568,7 @@ mod tests {
     #[test]
     fn test_modify_uuid_present() {
         // Add another uuid to a type
-        let ea: Entry<EntryInit, EntryNew> = Entry::unsafe_from_entry_str(
-            r#"{
-            "attrs": {
-                "class": ["group"],
-                "name": ["testgroup_a"],
-                "description": ["testgroup"],
-                "uuid": ["d2b496bd-8493-47b7-8142-f568b5cf47ee"]
-            }
-        }"#,
-        );
+        let ea = TESTGROUP_ENTRY_A.clone();
 
         let preload = vec![ea];
 
@@ -600,16 +592,8 @@ mod tests {
     #[test]
     fn test_modify_uuid_removed() {
         // Test attempting to remove a uuid
-        let ea: Entry<EntryInit, EntryNew> = Entry::unsafe_from_entry_str(
-            r#"{
-            "attrs": {
-                "class": ["group"],
-                "name": ["testgroup_a"],
-                "description": ["testgroup"],
-                "uuid": ["d2b496bd-8493-47b7-8142-f568b5cf47ee"]
-            }
-        }"#,
-        );
+
+        let ea = TESTGROUP_ENTRY_A.clone();
 
         let preload = vec![ea];
 
@@ -633,16 +617,8 @@ mod tests {
     #[test]
     fn test_modify_uuid_purged() {
         // Test attempting to purge uuid
-        let ea: Entry<EntryInit, EntryNew> = Entry::unsafe_from_entry_str(
-            r#"{
-            "attrs": {
-                "class": ["group"],
-                "name": ["testgroup_a"],
-                "description": ["testgroup"],
-                "uuid": ["d2b496bd-8493-47b7-8142-f568b5cf47ee"]
-            }
-        }"#,
-        );
+
+        let ea = TESTGROUP_ENTRY_A.clone();
 
         let preload = vec![ea];
 

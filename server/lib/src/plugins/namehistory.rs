@@ -130,10 +130,14 @@ impl Plugin for NameHistory {
 
 #[cfg(test)]
 mod tests {
+    use std::str::FromStr;
     use std::time::Duration;
+
+    use uuid::Uuid;
 
     use crate::entry::{Entry, EntryInit, EntryNew};
     use crate::prelude::entries::Attribute;
+    use crate::prelude::test_constants::TEST_TESTGROUP_A_UUID;
     use crate::prelude::{uuid, EntryClass};
     use crate::repl::cid::Cid;
     use crate::value::Value;
@@ -143,7 +147,7 @@ mod tests {
     fn name_purge_and_set() {
         // Add another uuid to a type
         let cid = Cid::new(
-            uuid!("d2b496bd-8493-47b7-8142-f568b5cf47ee"),
+            Uuid::from_str(TEST_TESTGROUP_A_UUID).expect("Failed to uuid"),
             Duration::new(20, 2),
         );
         let ea = entry_init!(
@@ -152,7 +156,7 @@ mod tests {
             (Attribute::Name, Value::new_iname("old_name")),
             (
                 Attribute::Uuid,
-                Value::Uuid(uuid!("d2b496bd-8493-47b7-8142-f568b5cf47ee"))
+                Value::Uuid(Uuid::from_str(TEST_TESTGROUP_A_UUID).expect("Failed to uuid"))
             ),
             (
                 Attribute::NameHistory,
@@ -174,7 +178,9 @@ mod tests {
             |_| {},
             |qs: &mut QueryServerWriteTransaction| {
                 let e = qs
-                    .internal_search_uuid(uuid!("d2b496bd-8493-47b7-8142-f568b5cf47ee"))
+                    .internal_search_uuid(
+                        Uuid::from_str(TEST_TESTGROUP_A_UUID).expect("Failed to uuid"),
+                    )
                     .expect("failed to get entry");
                 let c = e
                     .get_ava_set(Attribute::NameHistory)
@@ -239,7 +245,7 @@ mod tests {
             (Attribute::Name, Value::new_iname("old_name8")),
             (
                 Attribute::Uuid,
-                Value::Uuid(uuid!("d2b496bd-8493-47b7-8142-f568b5cf47ee"))
+                Value::Uuid(Uuid::from_str(TEST_TESTGROUP_A_UUID).expect("Failed to uuid"))
             ),
             (Attribute::Description, Value::new_utf8s("testperson")),
             (Attribute::DisplayName, Value::new_utf8s("old name person"))
@@ -265,7 +271,9 @@ mod tests {
             |_| {},
             |qs: &mut QueryServerWriteTransaction| {
                 let e = qs
-                    .internal_search_uuid(uuid!("d2b496bd-8493-47b7-8142-f568b5cf47ee"))
+                    .internal_search_uuid(
+                        Uuid::from_str(TEST_TESTGROUP_A_UUID).expect("Failed to uuid"),
+                    )
                     .expect("failed to get entry");
                 let c = e
                     .get_ava_set(Attribute::NameHistory)
