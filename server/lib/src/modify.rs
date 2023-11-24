@@ -191,7 +191,6 @@ impl ModifyList<ModifyInvalid> {
                     }
                 }
                 Modify::Assert(attr, value) => match schema_attributes.get(attr.as_ref()) {
-                    // TODO: given attr is an enum... you can't get this wrong anymore?
                     Some(schema_a) => schema_a
                         .validate_partialvalue(attr.as_ref(), value)
                         .map(|_| Modify::Assert(attr.to_owned(), value.clone())),
