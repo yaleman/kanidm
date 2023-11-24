@@ -45,7 +45,7 @@ pub(crate) async fn oauth2_get(
     security(("token_jwt" = [])),
     tag = "v1/oauth2",
 )]
-// TODO: what does this actually do? :D
+/// Creates a "basic" OAuth2 RS
 pub(crate) async fn oauth2_basic_post(
     State(state): State<ServerState>,
     Extension(kopid): Extension<KOpId>,
@@ -69,7 +69,7 @@ pub(crate) async fn oauth2_basic_post(
     security(("token_jwt" = [])),
     tag = "v1/oauth2",
 )]
-// TODO: what does this actually do? :D
+/// Creates a "public" OAuth2 RS
 pub(crate) async fn oauth2_public_post(
     State(state): State<ServerState>,
     Extension(kopid): Extension<KOpId>,
