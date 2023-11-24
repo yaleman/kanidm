@@ -760,7 +760,6 @@ impl<'a> QueryServerWriteTransaction<'a> {
         res?;
 
         // Delete entries that no longer need to exist.
-        // TODO: Shouldn't this be a migration?
         let delete_entries: [Uuid; 1] = [UUID_IDM_ACP_OAUTH2_READ_PRIV_V1];
 
         let res: Result<(), _> = delete_entries
