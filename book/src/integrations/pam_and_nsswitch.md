@@ -125,7 +125,7 @@ If it is not working, you will see an error message:
    Os { code: 111, kind: ConnectionRefused, message: "Connection refused" }
 ```
 
-For more information, see the [Troubleshooting](./pam_and_nsswitch.md#troubleshooting) section.
+For more information, see the [Troubleshooting](pam_and_nsswitch/troubleshooting.html) section.
 
 ## nsswitch
 
@@ -183,8 +183,8 @@ cp -a /etc/pam.d /root/pam.d.backup
 
 Documentation examples for the following Linux distributions are available:
 
-- [SUSE / OpenSUSE](pam_and_nsswitch/suse.md)
-- [Fedora](pam_and_nsswitch/fedora.md)
+- [SUSE / OpenSUSE](pam_and_nsswitch/suse.html)
+- [Fedora](pam_and_nsswitch/fedora.html)
 - Debian / Ubuntu - when one generates packages
   [from the repository tools](https://github.com/kanidm/kanidm/tree/master/platform/debian),
   configuration is modified on install.

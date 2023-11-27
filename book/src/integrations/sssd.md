@@ -1,6 +1,6 @@
 # SSSD
 
-[SSSD](https://sssd.io/) is an alternative [PAM and nsswitch](./pam_and_nsswitch) provider that is
+[SSSD](https://sssd.io/) is an alternative [PAM and nsswitch](pam_and_nsswitch.html) provider that is
 commonly available on Linux.
 
 <!-- deno-fmt-ignore-start -->
@@ -16,7 +16,7 @@ text=SSSD should be considered a "last resort". If possible, always use the nati
 ## Limitations
 
 SSSD has many significant limitations compared to Kanidm's native
-[PAM and nsswitch](./pam_and_nsswitch) provider.
+[PAM and nsswitch](pam_and_nsswitch.html) provider.
 
 ### Performance
 
