@@ -426,15 +426,12 @@ mod tests {
     #[test]
     fn test_pre_create_deny() {
         // Test creating with class: system is rejected.
-        let e: Entry<EntryInit, EntryNew> = Entry::unsafe_from_entry_str(
-            r#"{
-            "attrs": {
-                "class": ["person", "system"],
-                "name": ["testperson"],
-                "description": ["testperson"],
-                "displayname": ["testperson"]
-            }
-        }"#,
+        let e: EntryInitNew = entry_init!(
+            (Attribute::Class, EntryClass::Person.to_value()),
+            (Attribute::Class, EntryClass::System.to_value()),
+            (Attribute::Name, Value::new_iname("testperson")),
+            (Attribute::Description, Value::new_utf8s("testperson")),
+            (Attribute::DisplayName, Value::new_utf8s("testperson"))
         );
 
         let create = vec![e];
@@ -452,15 +449,12 @@ mod tests {
     #[test]
     fn test_pre_modify_system_deny() {
         // Test modify of class to a system is denied
-        let e: Entry<EntryInit, EntryNew> = Entry::unsafe_from_entry_str(
-            r#"{
-            "attrs": {
-                "class": ["person", "system"],
-                "name": ["testperson"],
-                "description": ["testperson"],
-                "displayname": ["testperson"]
-            }
-        }"#,
+        let e: EntryInitNew = entry_init!(
+            (Attribute::Class, EntryClass::Person.to_value()),
+            (Attribute::Class, EntryClass::System.to_value()),
+            (Attribute::Name, Value::new_iname("testperson")),
+            (Attribute::Description, Value::new_utf8s("testperson")),
+            (Attribute::DisplayName, Value::new_utf8s("testperson"))
         );
 
         let mut preload = PRELOAD.clone();
@@ -514,15 +508,12 @@ mod tests {
     #[test]
     fn test_pre_delete_deny() {
         // Test deleting with class: system is rejected.
-        let e: Entry<EntryInit, EntryNew> = Entry::unsafe_from_entry_str(
-            r#"{
-            "attrs": {
-                "class": ["person", "system"],
-                "name": ["testperson"],
-                "description": ["testperson"],
-                "displayname": ["testperson"]
-            }
-        }"#,
+        let e: EntryInitNew = entry_init!(
+            (Attribute::Class, EntryClass::Person.to_value()),
+            (Attribute::Class, EntryClass::System.to_value()),
+            (Attribute::Name, Value::new_iname("testperson")),
+            (Attribute::Description, Value::new_utf8s("testperson")),
+            (Attribute::DisplayName, Value::new_utf8s("testperson"))
         );
 
         let mut preload = PRELOAD.clone();
@@ -541,24 +532,39 @@ mod tests {
     fn test_modify_domain() {
         // Can edit *my* domain_ssid and domain_name
         // Show that adding a system class is denied
-        let e: Entry<EntryInit, EntryNew> = Entry::unsafe_from_entry_str(
-            r#"{
-            "attrs": {
-                "class": ["domain_info"],
-                "name": ["domain_example.net.au"],
-                "uuid": ["96fd1112-28bc-48ae-9dda-5acb4719aaba"],
-                "domain_uuid": ["96fd1112-28bc-48ae-9dda-5acb4719aaba"],
-                "description": ["Demonstration of a remote domain's info being created for uuid generation in test_modify_domain"],
-                "domain_name": ["example.net.au"],
-                "domain_display_name": ["example.net.au"],
-                "domain_ssid": ["Example_Wifi"],
-                "fernet_private_key_str": ["ABCD"],
-                "es256_private_key_der" : ["MTIz"],
-                "private_cookie_key" : ["MTIz"],
-                "version": ["1"]
-            }
-        }"#,
+        let e: EntryInitNew = entry_init!(
+            (Attribute::Class, EntryClass::DomainInfo.to_value()),
+            (Attribute::Name, Value::new_iname("domain_example.net.au")),
+            (Attribute::Uuid, Value::Uuid(Uuid::parse_str("96fd1112-28bc-48ae-9dda-5acb4719aaba").unwrap())),
+            (Attribute::DomainUuid, Value::Uuid(Uuid::parse_str("96fd1112-28bc-48ae-9dda-5acb4719aaba").unwrap())),
+            (Attribute::Description, Value::new_utf8s("Demonstration of a remote domain's info being created for uuid generation in test_modify_domain")),
+            (Attribute::DomainName, Value::new_iname("example.net.au")),
+            (Attribute::DomainDisplayName, Value::new_utf8s("example.net.au")),
+            (Attribute::DomainSsid, Value::new_utf8s("Example_Wifi")),
+            (Attribute::FernetPrivateKeyStr, Value::new_utf8s("ABCD")),
+            (Attribute::Es256PrivateKeyDer, Value::new_privatebinary("MTIz".as_bytes())),
+            (Attribute::PrivateCookieKey, Value::new_privatebinary("MTIz".as_bytes())),
+            (Attribute::Version, Value::Uint32(1))
         );
+
+        // let e: Entry<EntryInit, EntryNew> = Entry::unsafe_from_entry_str(
+        //     r#"{
+        //     "attrs": {
+        //         "class": ["domain_info"],
+        //         "name": ["domain_example.net.au"],
+        //         "uuid": ["96fd1112-28bc-48ae-9dda-5acb4719aaba"],
+        //         "domain_uuid": ["96fd1112-28bc-48ae-9dda-5acb4719aaba"],
+        //         "description": ["Demonstration of a remote domain's info being created for uuid generation in test_modify_domain"],
+        //         "domain_name": ["example.net.au"],
+        //         "domain_display_name": ["example.net.au"],
+        //         "domain_ssid": ["Example_Wifi"],
+        //         "fernet_private_key_str": ["ABCD"],
+        //         "es256_private_key_der" : ["MTIz"],
+        //         "private_cookie_key" : ["MTIz"],
+        //         "version": ["1"]
+        //     }
+        // }"#,
+        // );
 
         let mut preload = PRELOAD.clone();
         preload.push(e);
