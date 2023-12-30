@@ -70,11 +70,20 @@ pub struct ServerState {
 impl ServerState {
     fn reinflate_uuid_from_bytes(&self, input: &str) -> Option<Uuid> {
         match JwsUnverified::from_str(input) {
-            Ok(val) => val
+            Ok(val) => match val
                 .validate(&self.jws_validator)
                 .map(|jws: Jws<SessionId>| jws.into_inner().sessionid)
-                .ok(),
-            Err(_) => None,
+            {
+                Ok(sessionid) => Some(sessionid),
+                Err(err) => {
+                    error!("Failed to parse JWT while unmarshalling token: {:?}", err);
+                    None
+                }
+            },
+            Err(err) => {
+                error!("Failed to parse JWT: {:?}", err);
+                None
+            }
         }
     }
 
