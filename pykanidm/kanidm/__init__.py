@@ -17,7 +17,12 @@ import yarl
 from kanidm.models.group import Group, GroupList, IGroup, RawGroup
 from kanidm.models.oauth2_rs import IOauth2Rs, OAuth2Rs, Oauth2RsList, RawOAuth2Rs
 from kanidm.models.person import IPerson, Person, PersonList, RawPerson
-from kanidm.models.service_account import IServiceAccount, ServiceAccount, RawServiceAccount, ServiceAccountList
+from kanidm.models.service_account import (
+    IServiceAccount,
+    ServiceAccount,
+    RawServiceAccount,
+    ServiceAccountList,
+)
 
 from .exceptions import (
     AuthBeginFailed,
@@ -35,6 +40,8 @@ from .types import (
 )
 from .utils import load_config
 
+K_AUTH_SESSION_ID = "x-kanidm-auth-session-id"
+
 
 class Endpoints:
     AUTH = "/v1/auth"
@@ -44,6 +51,7 @@ class Endpoints:
     SYSTEM = "/v1/system"
     DOMAIN = "/v1/domain"
     SERVICE_ACCOUNT = "/v1/service_account"
+
 
 XDG_CACHE_HOME = (
     Path(os.getenv("LOCALAPPDATA", "~/AppData/Local")) / "cache"
@@ -77,6 +85,7 @@ class KanidmClient:
         uri: Optional[str] = None,
         verify_hostnames: bool = True,
         verify_certificate: bool = True,
+        verify_ca: bool = True,
         ca_path: Optional[str] = None,
         token: Optional[str] = None,
         logger: Optional[Logger] = None,
@@ -93,7 +102,8 @@ class KanidmClient:
                     "uri": uri,
                     "verify_hostnames": verify_hostnames,
                     "verify_certificate": verify_certificate,
-                    "verify_ca": ca_path,
+                    "verify_ca": verify_ca,
+                    "ca_path": ca_path,
                     "auth_token": token,
                 }
             )
@@ -217,7 +227,9 @@ class KanidmClient:
                         response_headers = dict(request.headers)
                         response_status = request.status
                     except json_lib.JSONDecodeError as json_error:
-                        self.logger.error("Failed to JSON Decode Response: %s", json_error)
+                        self.logger.error(
+                            "Failed to JSON Decode Response: %s", json_error
+                        )
                         self.logger.error("Response data: %s", content)
                         response_json = None
                 else:
@@ -229,7 +241,9 @@ class KanidmClient:
                 "status_code": response_status,
             }
             self.logger.debug(json_lib.dumps(response_input, default=str, indent=4))
-            response: ClientResponse[Any] = ClientResponse.model_validate(response_input)
+            response: ClientResponse[Any] = ClientResponse.model_validate(
+                response_input
+            )
             return response
 
     async def call_delete(
@@ -299,6 +313,8 @@ class KanidmClient:
         """init step, starts the auth session, sets the class-local session ID"""
         init_auth = {"step": {"init": username}}
 
+        self.logger.debug("auth_init called")
+
         response = await self.call_post(
             path=Endpoints.AUTH,
             json=init_auth,
@@ -311,23 +327,21 @@ class KanidmClient:
             # TODO: mock test auth_init raises AuthInitFailed
             raise AuthInitFailed(response.content)
 
-        if "x-kanidm-auth-session-id" not in response.headers:
+        if K_AUTH_SESSION_ID not in response.headers:
             self.logger.debug("response.content: %s", response.content)
             self.logger.debug("response.headers: %s", response.headers)
             raise ValueError(
-                f"Missing x-kanidm-auth-session-id header in init auth response: {response.headers}"
+                f"Missing {K_AUTH_SESSION_ID} header in init auth response: {response.headers}"
             )
         else:
-            self.config.auth_token = response.headers["x-kanidm-auth-session-id"]
+            self.config.auth_token = response.headers[K_AUTH_SESSION_ID]
 
         data = getattr(response, "data", {})
-        data["response"] = response
+        data["response"] = response.model_dump()
         retval = AuthInitResponse.model_validate(data)
 
         if update_internal_auth_token:
-            self.config.auth_token = response.headers.get(
-                "x-kanidm-auth-session-id", ""
-            )
+            self.config.auth_token = response.headers.get(K_AUTH_SESSION_ID, "")
         return retval
 
     async def auth_begin(
@@ -345,10 +359,9 @@ class KanidmClient:
         }
 
         if sessionid is not None:
-            headers = {"x-kanidm-auth-session-id": sessionid}
-        else:
-            if self.config.auth_token is not None:
-                headers = {"x-kanidm-auth-session-id": self.config.auth_token}
+            headers = {K_AUTH_SESSION_ID: sessionid}
+        elif self.config.auth_token is not None:
+            headers = {K_AUTH_SESSION_ID: self.config.auth_token}
 
         response = await self.call_post(
             Endpoints.AUTH,
@@ -359,14 +372,10 @@ class KanidmClient:
             # TODO: mock test for auth_begin raises AuthBeginFailed
             raise AuthBeginFailed(response.content)
         if response.data is not None:
-            response.data["sessionid"] = response.headers.get(
-                "x-kanidm-auth-session-id", ""
-            )
+            response.data["sessionid"] = response.headers.get(K_AUTH_SESSION_ID, "")
 
         if update_internal_auth_token:
-            self.config.auth_token = response.headers.get(
-                "x-kanidm-auth-session-id", ""
-            )
+            self.config.auth_token = response.headers.get(K_AUTH_SESSION_ID, "")
 
         self.logger.debug(json_lib.dumps(response.data, indent=4))
 
@@ -404,7 +413,7 @@ class KanidmClient:
         if auth_init.response is None:
             raise NotImplementedError("This should throw a really cool response")
 
-        sessionid = auth_init.response.headers["x-kanidm-auth-session-id"]
+        sessionid = auth_init.response.headers[K_AUTH_SESSION_ID]
 
         if len(auth_init.state.choose) == 0:
             # there's no mechanisms at all - bail
@@ -427,7 +436,7 @@ class KanidmClient:
         update_internal_auth_token: bool = False,
     ) -> AuthState:
         """does the password auth step"""
-
+        self.logger.debug("auth_step_password called")
         if password is None:
             password = self.config.password
         if password is None:
@@ -436,9 +445,9 @@ class KanidmClient:
             )
 
         if sessionid is not None:
-            headers = {"x-kanidm-auth-session-id": sessionid}
+            headers = {K_AUTH_SESSION_ID: sessionid}
         elif self.config.auth_token is not None:
-            headers = {"x-kanidm-auth-session-id": self.config.auth_token}
+            headers = {K_AUTH_SESSION_ID: self.config.auth_token}
 
         cred_auth = {"step": {"cred": {"password": password}}}
         response = await self.call_post(
@@ -453,6 +462,8 @@ class KanidmClient:
         result = AuthState.model_validate(response.data)
         result.response = response
 
+        if result.state is None:
+            raise AuthCredFailed
         if update_internal_auth_token:
             self.config.auth_token = result.state.success
 
@@ -466,13 +477,22 @@ class KanidmClient:
     async def auth_as_anonymous(self) -> None:
         """Authenticate as the anonymous user"""
 
-        init = await self.auth_init("anonymous", update_internal_auth_token=True)
-        self.logger.debug("auth_init completed, moving onto begin step")
+        auth_init = await self.auth_init("anonymous", update_internal_auth_token=True)
+
         await self.auth_begin(
-            method=init.state.choose[0], update_internal_auth_token=True
+            method=auth_init.state.choose[0],
+            update_internal_auth_token=True,
         )
-        self.logger.debug("auth_begin completed, moving onto cred step")
-        cred_auth = {"step": {"cred": "anonymous"}}
+
+        cred_auth = {
+            "step": {"cred": "anonymous"},
+        }
+
+        if self.config.auth_token is None:
+            raise AuthBeginFailed
+        headers = {
+            K_AUTH_SESSION_ID: self.config.auth_token,
+        }
 
         if self.config.auth_token is None:
             raise ValueError("Auth token is not set, auth failure!")
@@ -480,9 +500,12 @@ class KanidmClient:
         response = await self.call_post(
             path=Endpoints.AUTH,
             json=cred_auth,
+            headers=headers,
         )
         state = AuthState.model_validate(response.data)
         self.logger.debug("anonymous auth completed, setting token")
+        if state.state is None:
+            raise AuthCredFailed
         self.config.auth_token = state.state.success
 
     def session_header(
@@ -512,7 +535,9 @@ class KanidmClient:
         if response.data is None:
             return []
         if response.status_code != 200:
-            raise ValueError(f"Failed to get oauth2 resource servers: {response.content}")
+            raise ValueError(
+                f"Failed to get oauth2 resource servers: {response.content}"
+            )
         oauth2_rs_list = Oauth2RsList.model_validate(response.data)
         return [oauth2_rs.as_oauth2_rs for oauth2_rs in oauth2_rs_list.root]
 
@@ -521,9 +546,13 @@ class KanidmClient:
         endpoint = f"{Endpoints.OAUTH2}/{rs_name}"
         response: ClientResponse[IOauth2Rs] = await self.call_get(endpoint)
         if response.status_code != 200:
-            raise ValueError(f"Failed to get oauth2 resource server: {response.content}")
+            raise ValueError(
+                f"Failed to get oauth2 resource server: {response.content}"
+            )
         if response.data is None:
-            raise ValueError(f"Failed to get oauth2 resource server: {response.content}")
+            raise ValueError(
+                f"Failed to get oauth2 resource server: {response.content}"
+            )
         return RawOAuth2Rs(**response.data).as_oauth2_rs
 
     async def oauth2_rs_secret_get(self, rs_name: str) -> str:
@@ -531,7 +560,9 @@ class KanidmClient:
         endpoint = f"{Endpoints.OAUTH2}/{rs_name}/_basic_secret"
         response: ClientResponse[str] = await self.call_get(endpoint)
         if response.status_code != 200:
-            raise ValueError(f"Failed to get oauth2 resource server secret: {response.content}")
+            raise ValueError(
+                f"Failed to get oauth2 resource server secret: {response.content}"
+            )
         return response.data or ""
 
     async def oauth2_rs_delete(self, rs_name: str) -> ClientResponse[None]:
@@ -594,8 +625,13 @@ class KanidmClient:
             return []
         if response.status_code != 200:
             raise ValueError(f"Failed to get service accounts: {response.content}")
-        service_account_list = ServiceAccountList.model_validate(json_lib.loads(response.content))
-        return [service_account.as_service_account for service_account in service_account_list.root]
+        service_account_list = ServiceAccountList.model_validate(
+            json_lib.loads(response.content)
+        )
+        return [
+            service_account.as_service_account
+            for service_account in service_account_list.root
+        ]
 
     async def service_account_get(self, name: str) -> ServiceAccount:
         """Get a service account"""
@@ -643,7 +679,9 @@ class KanidmClient:
     async def service_account_delete_ssh_pubkey(
         self, id: str, tag: str
     ) -> ClientResponse[None]:
-        return await self.call_delete(f"{Endpoints.SERVICE_ACCOUNT}/{id}/_ssh_pubkeys/{tag}")
+        return await self.call_delete(
+            f"{Endpoints.SERVICE_ACCOUNT}/{id}/_ssh_pubkeys/{tag}"
+        )
 
     async def service_account_generate_api_token(
         self, account_id: str, label: str, expiry: str, read_write: bool = False
@@ -716,17 +754,23 @@ class KanidmClient:
 
         return await self.call_delete(endpoint)
 
-    async def group_set_members(self, id: str, members: List[str]) -> ClientResponse[None]:
+    async def group_set_members(
+        self, id: str, members: List[str]
+    ) -> ClientResponse[None]:
         """Set group member list"""
         endpoint = f"{Endpoints.GROUP}/{id}/_attr/member"
         return await self.call_put(endpoint, json=members)
 
-    async def group_add_members(self, id: str, members: List[str]) -> ClientResponse[None]:
+    async def group_add_members(
+        self, id: str, members: List[str]
+    ) -> ClientResponse[None]:
         """Add members to a group"""
         endpoint = f"{Endpoints.GROUP}/{id}/_attr/member"
         return await self.call_post(endpoint, json=members)
 
-    async def group_delete_members(self, id: str, members: List[str]) -> ClientResponse[None]:
+    async def group_delete_members(
+        self, id: str, members: List[str]
+    ) -> ClientResponse[None]:
         """Remove members from a group"""
         endpoint = f"{Endpoints.GROUP}/{id}/_attr/member"
         return await self.call_delete(endpoint, json=members)
@@ -803,7 +847,9 @@ class KanidmClient:
 
         return await self.call_post(endpoint, json=payload)
 
-    async def person_account_delete_ssh_key(self, id: str, tag: str) -> ClientResponse[None]:
+    async def person_account_delete_ssh_key(
+        self, id: str, tag: str
+    ) -> ClientResponse[None]:
         """Delete an SSH key for a user"""
         endpoint = f"{Endpoints.PERSON}/{id}/_ssh_pubkeys/{tag}"
 
@@ -858,23 +904,31 @@ class KanidmClient:
             "/v1/system/_attr/badlist_password", json=new_passwords
         )
 
-    async def system_password_badlist_remove(self, items: List[str]) -> ClientResponse[None]:
+    async def system_password_badlist_remove(
+        self, items: List[str]
+    ) -> ClientResponse[None]:
         """Remove items from the password badlist"""
 
         return await self.call_delete("/v1/system/_attr/badlist_password", json=items)
 
     async def system_denied_names_get(self) -> List[str]:
         """Get the denied names list"""
-        response: Optional[List[str]] = (await self.call_get("/v1/system/_attr/denied_name")).data
+        response: Optional[List[str]] = (
+            await self.call_get("/v1/system/_attr/denied_name")
+        ).data
         if response is None:
             return []
         return response
 
-    async def system_denied_names_append(self, names: List[str]) -> ClientResponse[None]:
+    async def system_denied_names_append(
+        self, names: List[str]
+    ) -> ClientResponse[None]:
         """Add items to the denied names list"""
         return await self.call_post("/v1/system/_attr/denied_name", json=names)
 
-    async def system_denied_names_remove(self, names: List[str]) -> ClientResponse[None]:
+    async def system_denied_names_remove(
+        self, names: List[str]
+    ) -> ClientResponse[None]:
         """Remove items from the denied names list"""
         return await self.call_delete("/v1/system/_attr/denied_name", json=names)
 
