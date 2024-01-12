@@ -20,8 +20,7 @@ async-trait = { workspace = true }
 axum = { workspace = true }
 axum-auth = "0.4.1"
 axum-csp = { workspace = true }
-axum-macros = "0.3.8"
-axum-server = { version = "0.5.1", features = ["tls-openssl"] }
+axum-server = { workspace = true, features = ["tls-openssl"] }
 bytes = { workspace = true }
 chrono = { workspace = true }
 compact_jwt = { workspace = true }
@@ -52,7 +51,7 @@ tokio-openssl = { workspace = true }
 tokio-util = { workspace = true, features = ["codec"] }
 toml = { workspace = true }
 tower = { version = "0.4.13", features = ["tokio-stream", "tracing"] }
-tower-http = { version = "0.4.4", features = [
+tower-http = { version = "^0.5.0", features = [
     "compression-gzip",
     "compression-zstd",
     "fs",
@@ -75,7 +74,9 @@ utoipa = { workspace = true, features = [
     "uuid",
 ] }
 utoipa-swagger-ui = { workspace = true, features = ["axum"] }
-
+axum-forwarded-header = { workspace = true }
+headers = { workspace = true }
+hyper-util = { version = "0.1.2", features = ["server", "http2", "tokio"] }
 [dev-dependencies]
 walkdir = { workspace = true }
 tempfile = { workspace = true }

@@ -26,11 +26,8 @@ use axum::response::Redirect;
 use axum::routing::*;
 use axum::Router;
 use axum_csp::{CspDirectiveType, CspValue};
-use axum_macros::FromRef;
 use compact_jwt::{JwsCompact, JwsHs256Signer, JwsVerifier};
 use hashbrown::HashMap;
-use hyper::server::accept::Accept;
-use hyper::server::conn::{AddrStream, Http};
 use kanidm_proto::constants::KSESSIONID;
 use kanidmd_lib::idm::ClientCertInfo;
 use kanidmd_lib::status::StatusActor;
@@ -58,7 +55,7 @@ use crate::CoreAction;
 
 use self::v1::SessionId;
 
-#[derive(Clone, FromRef)]
+#[derive(Clone, axum::extract::FromRef)]
 pub struct ServerState {
     pub status_ref: &'static kanidmd_lib::status::StatusActor,
     pub qe_w_ref: &'static crate::actors::v1_write::QueryServerWriteV1,
@@ -201,7 +198,7 @@ pub async fn create_https_server(
         .collect();
     js_directives.extend(vec![CspValue::UnsafeEval, CspValue::SelfSite]);
 
-    let csp_header = axum_csp::CspSetBuilder::new()
+    let csp_header = axum_csp::CspHeaderBuilder::new()
         // default-src 'self';
         .add(CspDirectiveType::DefaultSrc, vec![CspValue::SelfSite])
         // form-action https: 'self';
@@ -493,16 +490,21 @@ async fn server_loop(
         // End tls_client setup
     }
 
-    let tls_acceptor = tls_builder.build();
+    let tls_acceptor: SslAcceptor = tls_builder.build();
+    use hyper_util::rt::TokioIo;
 
-    let protocol = Arc::new(Http::new());
-    let mut listener =
-        hyper::server::conn::AddrIncoming::from_listener(listener).map_err(|err| {
-            std::io::Error::new(
-                ErrorKind::Other,
-                format!("Failed to create listener: {:?}", err),
-            )
-        })?;
+    let io = TokioIo::new(tls_acceptor);
+
+    
+
+    // let protocol = Arc::new(Http::new());
+    let mut listener = hyper::server::conn::http1::Builder::new().serve_connection(io, service);
+    // hyper::server::conn::AddrIncoming::from_listener(listener).map_err(|err| {
+    //     std::io::Error::new(
+    //         ErrorKind::Other,
+    //         format!("Failed to create listener: {:?}", err),
+    //     )
+    // })?;
     loop {
         if let Some(Ok(stream)) = poll_fn(|cx| Pin::new(&mut listener).poll_accept(cx)).await {
             let tls_acceptor = tls_acceptor.clone();

@@ -122,7 +122,7 @@ pub struct ServerConfig {
     /// Backup Configuration, see [OnlineBackup] for details on sub-keys.
     pub online_backup: Option<OnlineBackup>,
 
-    /// Trust the X-Forwarded-For header for client IP address. Defaults to false if unset.
+    /// Trust the Forwarded, or X-Forwarded-For header for client IP address. Defaults to false if unset.
     pub trust_x_forward_for: Option<bool>,
 
     /// The filesystem type, either "zfs" or "generic". Defaults to "generic" if unset. I you change this, run a database vacuum.

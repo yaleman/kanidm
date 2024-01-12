@@ -1,3 +1,4 @@
+use axum::http::HeaderValue;
 use axum::{
     async_trait,
     extract::connect_info::{ConnectInfo, Connected},
@@ -7,7 +8,7 @@ use axum::{
     },
     RequestPartsExt,
 };
-use hyper::server::conn::AddrStream;
+use axum_forwarded_header::ForwardedHeader;
 use kanidm_proto::constants::X_FORWARDED_FOR;
 use kanidmd_lib::prelude::{ClientAuthInfo, ClientCertInfo, Source};
 
@@ -44,24 +45,53 @@ impl FromRequestParts<ServerState> for TrustedClientIp {
             })?;
 
         let ip_addr = if state.trust_x_forward_for {
-            if let Some(x_forward_for) = parts.headers.get(X_FORWARDED_FOR_HEADER) {
-                // X forward for may be comma separated.
-                let first = x_forward_for
+            // at this point we have to check "X-Forwarded-For" or "Forwarded"
+
+            let mut forwarded_header: Option<HeaderValue> = None;
+            let mut header_name = "";
+
+            if let Some(forwarded) = parts.headers.get(axum::http::header::FORWARDED) {
+                let forwarded = match ForwardedHeader::try_from(forwarded.clone()) {
+                    Ok(val) => Some(val),
+                    Err(err) => {
+                        error!("Failed to parse 'Forwarded header': {}", err);
+                        None
+                    }
+                };
+
+                header_name = axum::http::header::FORWARDED.as_str();
+            }
+
+            if let Some(xff) = parts.headers.get(X_FORWARDED_FOR_HEADER) {
+                forwarded_header = Some(xff.clone());
+                header_name = X_FORWARDED_FOR;
+            }
+
+            if let Some(forwarded_value) = forwarded_header {
+                // header may be comma separated.
+                let first = forwarded_value
                     .to_str()
                     .map(|s|
                         // Split on an optional comma, return the first result.
                         s.split(',').next().unwrap_or(s))
                     .map_err(|_| {
-                        (
-                            StatusCode::BAD_REQUEST,
-                            "X-Forwarded-For contains invalid data",
-                        )
+                        error!(
+                            "Failed to parse {} header, contains invalid data: {}",
+                            header_name,
+                            forwarded_value.to_str().unwrap_or("")
+                        );
+                        (StatusCode::BAD_REQUEST, "Forwarded contains invalid data")
                     })?;
 
                 first.parse::<IpAddr>().map_err(|_| {
+                    error!(
+                        "Failed to parse {} header, contains invalid IP address: {}",
+                        header_name,
+                        forwarded_value.to_str().unwrap_or("")
+                    );
                     (
                         StatusCode::BAD_REQUEST,
-                        "X-Forwarded-For contains invalid ip addr",
+                        "Forwarded header contains invalid IP address",
                     )
                 })?
             } else {
@@ -163,11 +193,12 @@ impl Connected<ClientConnInfo> for ClientConnInfo {
     }
 }
 
-impl<'a> Connected<&'a AddrStream> for ClientConnInfo {
-    fn connect_info(target: &'a AddrStream) -> Self {
+impl axum::extract::connect_info::Connected<std::net::SocketAddr> for ClientConnInfo {
+    fn connect_info(target: std::net::SocketAddr) -> Self {
         ClientConnInfo {
-            addr: target.remote_addr(),
+            addr: target,
             client_cert: None,
         }
     }
 }
+

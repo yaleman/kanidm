@@ -91,7 +91,7 @@ pub fn start_logging_pipeline(
                             // TODO: it'd be really nice to be able to set the instance ID here, from the server UUID so we know *which* instance on this host is logging
                         ])),
                 )
-                .install_batch(opentelemetry::runtime::Tokio)
+                .install_batch(opentelemetry_sdk::runtime::Tokio)
                 .map_err(|err| {
                     let err = format!("Failed to start OTLP pipeline: {:?}", err);
                     eprintln!("{}", err);

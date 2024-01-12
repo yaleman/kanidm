@@ -14,7 +14,7 @@ pub(crate) mod security_headers;
 const KANIDM_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 /// Injects a header into the response with "X-KANIDM-VERSION" matching the version of the package.
-pub async fn version_middleware<B>(request: Request<B>, next: Next<B>) -> Response {
+pub async fn version_middleware(request: Request<axum::body::Body>, next: Next) -> Response {
     let mut response = next.run(request).await;
     response
         .headers_mut()
@@ -25,7 +25,7 @@ pub async fn version_middleware<B>(request: Request<B>, next: Next<B>) -> Respon
 #[cfg(any(test, debug_assertions))]
 /// This is a debug middleware to ensure that /v1/ endpoints only return JSON
 #[instrument(level = "debug", name = "are_we_json_yet", skip_all)]
-pub async fn are_we_json_yet<B>(request: Request<B>, next: Next<B>) -> Response {
+pub async fn are_we_json_yet(request: Request<axum::body::Body>, next: Next) -> Response {
     let uri = request.uri().path().to_string();
 
     let response = next.run(request).await;
@@ -53,7 +53,7 @@ pub struct KOpId {
 
 /// This runs at the start of the request, adding an extension with `KOpId` which has useful things inside it.
 #[instrument(level = "debug", name = "kopid_middleware", skip_all)]
-pub async fn kopid_middleware<B>(mut request: Request<B>, next: Next<B>) -> Response {
+pub async fn kopid_middleware(mut request: Request<axum::body::Body>, next: Next) -> Response {
     // generate the event ID
     let eventid = sketching::tracing_forest::id();
 

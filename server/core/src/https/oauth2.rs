@@ -2,6 +2,7 @@ use super::errors::WebError;
 use super::middleware::KOpId;
 use super::ServerState;
 use crate::https::extractors::VerifiedClientInformation;
+use axum::body::Body;
 use axum::extract::{Path, Query, State};
 use axum::http::header::{
     ACCESS_CONTROL_ALLOW_HEADERS, ACCESS_CONTROL_ALLOW_ORIGIN, AUTHORIZATION, CONTENT_TYPE,
@@ -11,10 +12,8 @@ use axum::http::{HeaderMap, HeaderValue, StatusCode};
 use axum::middleware::from_fn;
 use axum::response::{IntoResponse, Response};
 use axum::routing::{get, post};
-use axum::{Extension, Form, Json, Router};
-use axum_macros::debug_handler;
+use axum::{debug_handler, Extension, Form, Json, Router};
 use compact_jwt::{JwkKeySet, OidcToken};
-use hyper::Body;
 use kanidm_proto::constants::uri::{
     OAUTH2_AUTHORISE, OAUTH2_AUTHORISE_PERMIT, OAUTH2_AUTHORISE_REJECT,
 };
@@ -476,7 +475,7 @@ async fn oauth2_authorise_reject(
     }
 }
 
-#[axum_macros::debug_handler]
+#[debug_handler]
 #[instrument(skip(state, kopid, headers), level = "DEBUG")]
 pub async fn oauth2_token_post(
     State(state): State<ServerState>,

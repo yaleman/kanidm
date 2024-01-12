@@ -19,15 +19,17 @@ doctest = false
 [dependencies]
 gethostname = "0.4.3"
 num_enum = { workspace = true }
-opentelemetry = { workspace = true, features = ["metrics", "rt-tokio"] }
+opentelemetry = { workspace = true, features = ["metrics"] }
 opentelemetry-otlp = { workspace = true, default-features = false, features = [
     "serde",
+    "trace",
     "logs",
     "metrics",
     "http-proto",
     "grpc-tonic",
+    "tokio",
 ] }
-opentelemetry_sdk = { workspace = true }
+opentelemetry_sdk = { workspace = true, features = ["rt-tokio", "trace"] }
 rand = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 tracing = { workspace = true, features = ["attributes"] }
