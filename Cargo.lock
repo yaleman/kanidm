@@ -3295,6 +3295,7 @@ dependencies = [
 name = "kanidmd_web_ui_admin"
 version = "1.1.0-rc.16"
 dependencies = [
+ "enum-iterator",
  "gloo",
  "gloo-utils 0.2.0",
  "js-sys",
