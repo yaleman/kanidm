@@ -7,6 +7,8 @@ use std::cmp::Ordering;
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 use std::str::FromStr;
+use clap::ValueEnum;
+use enum_iterator::{all, Sequence};
 use time::OffsetDateTime;
 use url::Url;
 use utoipa::ToSchema;
@@ -1092,6 +1094,23 @@ pub enum SetCredentialRequest {
     BackupCodeRemove,
 }
 */
+
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Sequence, ValueEnum)]
+pub enum ObjectType {
+    Group,
+    BuiltinGroup,
+    ServiceAccount,
+    Person,
+}
+
+impl TryFrom<String> for ObjectType {
+
+    type Error = ();
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        return all::<ObjectType>().find(|x| format!("{x:?}") == value).ok_or(())
+    }
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "lowercase")]
