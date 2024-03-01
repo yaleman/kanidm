@@ -1014,6 +1014,7 @@ impl<'a> QueryServerWriteTransaction<'a> {
         let idm_schema_classes: Vec<EntryInitNew> = vec![
             SCHEMA_CLASS_ACCOUNT.clone().into(),
             SCHEMA_CLASS_ACCOUNT_POLICY.clone().into(),
+            SCHEMA_CLASS_BUILTIN.clone().into(),
             SCHEMA_CLASS_DOMAIN_INFO.clone().into(),
             SCHEMA_CLASS_DYNGROUP.clone().into(),
             SCHEMA_CLASS_GROUP.clone().into(),

@@ -92,6 +92,7 @@ impl From<BuiltinAcp> for EntryInitNew {
         value.classes.iter().for_each(|class| {
             entry.add_ava(Attribute::Class, class.to_value());
         });
+        entry.add_ava(Attribute::Class, EntryClass::Builtin.into());
 
         entry.set_ava(Attribute::Name, [Value::new_iname(value.name)]);
         entry.set_ava(Attribute::Uuid, [Value::Uuid(value.uuid)]);

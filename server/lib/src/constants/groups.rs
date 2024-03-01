@@ -27,7 +27,11 @@ impl TryFrom<BuiltinGroup> for EntryInitNew {
         // classes for groups
         entry.set_ava(
             Attribute::Class,
-            vec![EntryClass::Group.into(), EntryClass::Object.into()],
+            vec![
+                EntryClass::Group.into(),
+                EntryClass::Object.into(),
+                EntryClass::Builtin.into(),
+            ],
         );
         if val.dyngroup {
             if !val.members.is_empty() {

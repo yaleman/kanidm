@@ -600,6 +600,7 @@ pub enum EntryClass {
     Account,
     AccountPolicy,
     AttributeType,
+    Builtin,
     Class,
     ClassType,
     Conflict,
@@ -646,6 +647,7 @@ impl From<EntryClass> for &'static str {
             EntryClass::Account => "account",
             EntryClass::AccountPolicy => "account_policy",
             EntryClass::AttributeType => "attributetype",
+            EntryClass::Builtin => ENTRYCLASS_BUILTIN,
             EntryClass::Class => ATTR_CLASS,
             EntryClass::ClassType => "classtype",
             EntryClass::Conflict => "conflict",
@@ -822,6 +824,7 @@ impl From<BuiltinAccount> for EntryInitNew {
             Attribute::Class,
             vec![
                 EntryClass::Account.to_value(),
+                EntryClass::Builtin.to_value(),
                 EntryClass::MemberOf.to_value(),
                 EntryClass::Object.to_value(),
             ],

@@ -5,6 +5,7 @@
 // use tempfile::tempdir;
 
 use kanidm_client::KanidmClient;
+use kanidmd_lib::constants::EntryClass;
 use kanidmd_testkit::login_put_admin_idm_admins;
 // use testkit_macros::cli_kanidm;
 
@@ -223,6 +224,24 @@ async fn test_idm_domain_set_ldap_basedn(rsclient: KanidmClient) {
         .idm_domain_set_ldap_basedn("krabsarekool")
         .await
         .is_err());
+}
+
+#[kanidmd_testkit::test]
+/// Checks that a built-in group idm_all_persons has the "builtin" class as expected.
+async fn test_all_persons_has_builtin_class(rsclient: KanidmClient) {
+    login_put_admin_idm_admins(&rsclient).await;
+    let res = rsclient
+        .idm_group_get("idm_all_persons")
+        .await
+        .expect("Failed to get idm_all_persons");
+    eprintln!("res: {:?}", res);
+
+    assert!(res
+        .unwrap()
+        .attrs
+        .get("class")
+        .unwrap()
+        .contains(&EntryClass::Builtin.as_ref().into()));
 }
 
 // /// run a test command as the admin user
