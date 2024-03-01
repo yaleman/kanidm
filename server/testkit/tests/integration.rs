@@ -97,7 +97,7 @@ async fn test_webdriver_user_login(rsclient: kanidm_client::KanidmClient) {
 
     println!("Waiting for page to load");
     let mut wait_attempts = 0;
-    while wait_attempts < 10 {
+    loop {
         tokio::time::sleep(tokio::time::Duration::from_micros(200)).await;
         c.wait();
 
