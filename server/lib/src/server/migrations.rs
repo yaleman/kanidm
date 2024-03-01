@@ -887,6 +887,7 @@ impl<'a> QueryServerWriteTransaction<'a> {
             IDM_ACP_PEOPLE_CREATE_DL6.clone().into(),
             IDM_ACP_GROUP_MANAGE_DL6.clone().into(),
         ];
+        self.reload()?;
 
         idm_access_controls
             .into_iter()
@@ -895,6 +896,35 @@ impl<'a> QueryServerWriteTransaction<'a> {
                 error!(?err, "migrate_domain_5_to_6 -> Error");
                 err
             })?;
+
+        let mut modlist: Vec<_> = Vec::new();
+
+        builtin_accounts().into_iter().for_each(|account| {
+            modlist.push(account.uuid.clone());
+        });
+
+        idm_builtin_admin_groups().into_iter().for_each(|group| {
+            modlist.push(group.uuid.clone());
+        });
+        idm_builtin_non_admin_groups()
+            .into_iter()
+            .for_each(|group| {
+                modlist.push(group.uuid.clone());
+            });
+
+        let modset: Vec<_> = modlist
+            .into_iter()
+            .map(|entry| {
+                let modlist = vec![Modify::Present(
+                    Attribute::Class.into(),
+                    EntryClass::Builtin.into(),
+                )];
+
+                (entry, ModifyList::new_list(modlist))
+            })
+            .collect();
+        // add the builtin class to everything
+        self.internal_batch_modify(modset.into_iter())?;
 
         Ok(())
     }

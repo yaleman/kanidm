@@ -824,7 +824,6 @@ impl From<BuiltinAccount> for EntryInitNew {
             Attribute::Class,
             vec![
                 EntryClass::Account.to_value(),
-                EntryClass::Builtin.to_value(),
                 EntryClass::MemberOf.to_value(),
                 EntryClass::Object.to_value(),
             ],
