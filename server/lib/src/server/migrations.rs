@@ -898,10 +898,18 @@ impl<'a> QueryServerWriteTransaction<'a> {
             })?;
 
         // all the built-in objects get a builtin class
-        let filter = f_lt(
-            Attribute::Uuid,
-            PartialValue::Uuid(uuid::uuid!("00000000-0000-0000-0001-000000000000")),
-        );
+        let filter = f_and(vec![
+            f_lt(
+                Attribute::Uuid,
+                PartialValue::Uuid(uuid::uuid!("00000000-0000-0000-0001-000000000000")),
+            ),
+            f_or(vec![
+                f_eq(Attribute::Class, EntryClass::Person.into()),
+                f_eq(Attribute::Class, EntryClass::ServiceAccount.into()),
+                f_eq(Attribute::Class, EntryClass::Group.into()),
+                f_eq(Attribute::Class, EntryClass::AccessControlProfile.into()),
+            ]),
+        ]);
         let modlist = modlist!([m_pres(Attribute::Class, &EntryClass::Builtin.into())]);
 
         self.internal_modify(&filter!(filter), &modlist)?;
