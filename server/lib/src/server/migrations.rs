@@ -897,34 +897,14 @@ impl<'a> QueryServerWriteTransaction<'a> {
                 err
             })?;
 
-        let mut modlist: Vec<_> = Vec::new();
+        // all the built-in objects get a builtin class
+        let filter = f_lt(
+            Attribute::Uuid,
+            PartialValue::Uuid(uuid::uuid!("00000000-0000-0000-0001-000000000000")),
+        );
+        let modlist = modlist!([m_pres(Attribute::Class, &EntryClass::Builtin.into())]);
 
-        builtin_accounts().into_iter().for_each(|account| {
-            modlist.push(account.uuid.clone());
-        });
-
-        idm_builtin_admin_groups().into_iter().for_each(|group| {
-            modlist.push(group.uuid.clone());
-        });
-        idm_builtin_non_admin_groups()
-            .into_iter()
-            .for_each(|group| {
-                modlist.push(group.uuid.clone());
-            });
-
-        let modset: Vec<_> = modlist
-            .into_iter()
-            .map(|entry| {
-                let modlist = vec![Modify::Present(
-                    Attribute::Class.into(),
-                    EntryClass::Builtin.into(),
-                )];
-
-                (entry, ModifyList::new_list(modlist))
-            })
-            .collect();
-        // add the builtin class to everything
-        self.internal_batch_modify(modset.into_iter())?;
+        self.internal_modify(&filter!(filter), &modlist)?;
 
         Ok(())
     }
