@@ -313,3 +313,31 @@ coverage/grcov:
 coverage: ## Run all the coverage tests
 coverage: coverage/test coverage/grcov
 	echo "Coverage report is in ./target/coverage/html/index.html"
+
+
+macos/sign: ## codesign the binaries
+	cargo build --bin kanidm
+	@echo "####################################"
+	@echo "Checking it runs..."
+	@echo "####################################"
+	./target/debug/kanidm
+
+	@echo "####################################"
+	@echo "Signing the binary..."
+	@echo "####################################"
+	codesign --force --sign - \
+		--entitlements $(PWD)/platform/macos/entitlements.xml \
+		--timestamp\=none \
+		--generate-entitlement-der $(PWD)/target/debug/kanidm \
+		$(PWD)/target/debug/kanidm
+
+	@echo "####################################"
+	@echo "Checking the details..."
+	@echo "####################################"
+	@codesign -vv -d $(PWD)/target/debug/kanidm
+
+	@echo "####################################"
+	@echo "Checking it runs..."
+	@echo "####################################"
+	@$(PWD)/target/debug/kanidm --version
+
