@@ -88,7 +88,7 @@ pub struct VerifiedClientInformation(pub ClientAuthInfo);
 
 #[async_trait]
 impl FromRequestParts<ServerState> for VerifiedClientInformation {
-    type Rejection = (StatusCode, &'static str);
+    type Rejection = &'static str;
 
     #[instrument(level = "debug", skip(state))]
     async fn from_request_parts(
@@ -100,10 +100,11 @@ impl FromRequestParts<ServerState> for VerifiedClientInformation {
             .await
             .map_err(|_| {
                 error!("Connect info contains invalid data");
-                (
-                    StatusCode::BAD_REQUEST,
-                    "connect info contains invalid data",
-                )
+                // (
+                // StatusCode::BAD_REQUEST,
+                "connect info contains invalid data"
+                // ,
+                // )
             })?;
 
         let ip_addr = if state.trust_x_forward_for {
@@ -115,17 +116,19 @@ impl FromRequestParts<ServerState> for VerifiedClientInformation {
                         // Split on an optional comma, return the first result.
                         s.split(',').next().unwrap_or(s))
                     .map_err(|_| {
-                        (
-                            StatusCode::BAD_REQUEST,
-                            "X-Forwarded-For contains invalid data",
-                        )
+                        // (
+                        // StatusCode::BAD_REQUEST,
+                        "X-Forwarded-For contains invalid data"
+                        // ,
+                        // )
                     })?;
 
                 first.parse::<IpAddr>().map_err(|_| {
-                    (
-                        StatusCode::BAD_REQUEST,
-                        "X-Forwarded-For contains invalid ip addr",
-                    )
+                    // (
+                    // StatusCode::BAD_REQUEST,
+                    "X-Forwarded-For contains invalid ip addr"
+                    // ,
+                    // )
                 })?
             } else {
                 addr.ip()
@@ -182,8 +185,23 @@ impl FromRequestParts<ServerState> for VerifiedClientInformation {
 }
 
 #[async_trait]
+impl FromRequest<ServerState, axum::body::Body>
+    for axum::Form<kanidm_proto::oauth2::AccessTokenRequest>
+{
+    type Rejection = &'static str;
+
+    // #[instrument(level = "debug", skip(state))]
+    async fn from_request(
+        _request: axum::extract::Request,
+        _state: &ServerState,
+    ) -> Result<Self, Self::Rejection> {
+        todo!()
+    }
+}
+
+#[async_trait]
 impl FromRequest<ServerState, axum::body::Body> for VerifiedClientInformation {
-    type Rejection = (StatusCode, &'static str);
+    type Rejection = &'static str;
 
     #[instrument(level = "debug", skip(state))]
     async fn from_request(
@@ -196,10 +214,11 @@ impl FromRequest<ServerState, axum::body::Body> for VerifiedClientInformation {
             .await
             .map_err(|_| {
                 error!("Connect info contains invalid data");
-                (
-                    StatusCode::BAD_REQUEST,
-                    "connect info contains invalid data",
-                )
+                // (
+                // StatusCode::BAD_REQUEST,
+                "connect info contains invalid data"
+                // ,
+                // )
             })?;
 
         let ip_addr = if state.trust_x_forward_for {
@@ -211,17 +230,19 @@ impl FromRequest<ServerState, axum::body::Body> for VerifiedClientInformation {
                         // Split on an optional comma, return the first result.
                         s.split(',').next().unwrap_or(s))
                     .map_err(|_| {
-                        (
-                            StatusCode::BAD_REQUEST,
-                            "X-Forwarded-For contains invalid data",
-                        )
+                        // (
+                        // StatusCode::BAD_REQUEST,
+                        "X-Forwarded-For contains invalid data"
+                        // ,
+                        // )
                     })?;
 
                 first.parse::<IpAddr>().map_err(|_| {
-                    (
-                        StatusCode::BAD_REQUEST,
-                        "X-Forwarded-For contains invalid ip addr",
-                    )
+                    // (
+                    // StatusCode::BAD_REQUEST,
+                    "X-Forwarded-For contains invalid ip addr"
+                    // ,
+                    // )
                 })?
             } else {
                 addr.ip()
@@ -249,8 +270,10 @@ impl FromRequest<ServerState, axum::body::Body> for VerifiedClientInformation {
 
         Ok(VerifiedClientInformation(ClientAuthInfo {
             source: Source::Https(ip_addr),
-            bearer_token,
             client_cert,
+            bearer_token: None,
+            // bearer_token, // TODO
+            basic_authz: None,
         }))
     }
 }
