@@ -6,6 +6,8 @@ use sketching::event_dynamic_lvl;
 use tower_http::LatencyUnit;
 use tracing::{Level, Span};
 
+use crate::https::extractors::VerifiedClientInformation;
+
 /// The default way Spans will be created for Trace.
 ///
 #[derive(Debug, Clone)]
@@ -49,7 +51,6 @@ pub(crate) struct DefaultOnResponseKanidmd {
 }
 
 impl DefaultOnResponseKanidmd {
-    #[allow(dead_code)]
     pub fn new() -> Self {
         Self::default()
     }
@@ -89,12 +90,20 @@ impl<B> tower_http::trace::OnResponse<B> for DefaultOnResponseKanidmd {
                     }
                 }
             };
+
+        let client_ip = response
+            .extensions()
+            .get::<VerifiedClientInformation>()
+            .map(|client_info| client_info.0.source.ip_as_string())
+            .flatten();
+
         event_dynamic_lvl!(
             level,
             ?latency,
             status_code = response.status().as_u16(),
             kopid = kopid,
-            msg
+            client_ip = client_ip.unwrap_or("unknown".to_string()),
+            msg,
         );
     }
 }

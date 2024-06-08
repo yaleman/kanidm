@@ -82,6 +82,7 @@ impl FromRequestParts<ServerState> for TrustedClientIp {
     }
 }
 
+#[derive(Debug)]
 pub struct VerifiedClientInformation(pub ClientAuthInfo);
 
 #[async_trait]

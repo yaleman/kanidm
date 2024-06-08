@@ -24,6 +24,17 @@ pub enum Source {
     Ldaps(IpAddr),
 }
 
+impl Source {
+    pub fn ip_as_string(&self) -> Option<String> {
+        eprintln!("ip_as_string: {:?}", self);
+        match self {
+            Source::Internal => None,
+            Source::Https(ip) | Source::Ldaps(ip) => Some(*ip),
+        }
+        .map(|ip| ip.to_string())
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AccessScope {
     ReadOnly,
