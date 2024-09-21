@@ -1,0 +1,47 @@
+---
+name: Rust Testing (Coverage)
+"on":
+  push:
+    paths-ignore:
+      - docs/**
+      - static/**
+      - plugins/**
+  workflow_dispatch:
+env:
+  SCCACHE_GHA_ENABLED: "true"
+  RUSTC_WRAPPER: "sccache"
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure sccache
+        uses: actions/github-script@v6
+        with:
+          script: |
+            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
+            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
+      - name: Setup sccache
+        uses: mozilla-actions/sccache-action@v0.0.5
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+      - name: Install typical dependencies
+        run: |
+          sudo apt-get update && \
+          sudo apt-get install -y \
+            libpam0g-dev \
+            libudev-dev \
+            libssl-dev
+      - name: "Cargo coverage"
+        run: |
+          cargo install cargo-tarpaulin
+          if [ -z "${{ secrets.COVERALLS_REPO_TOKEN }}" ]; then
+            echo "COVERALLS_REPO_TOKEN is not set. Skipping coveralls upload.";
+          else
+            cargo tarpaulin --coveralls "${{ secrets.COVERALLS_REPO_TOKEN }}";
+          fi
