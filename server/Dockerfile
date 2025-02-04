@@ -1,6 +1,5 @@
 ARG RUST_VERSION=1.84
 
-FROM --platform=$BUILDPLATFORM docker.io/tonistiigi/xx AS xx
 FROM --platform=$BUILDPLATFORM rust:${RUST_VERSION}-slim-bookworm AS base
 FROM --platform=$BUILDPLATFORM rust:${RUST_VERSION}-slim-bookworm AS toolchain
 
@@ -8,14 +7,10 @@ FROM --platform=$BUILDPLATFORM rust:${RUST_VERSION}-slim-bookworm AS toolchain
 RUN rm -f /etc/apt/apt.conf.d/docker-clean
 
 # Match Rustc version as close as possible
-# rustc -vV
 ARG LLVM_VERSION=19
 ENV RUSTUP_TOOLCHAIN=${RUST_VERSION}
 
 # Install repo tools
-# Line one: compiler tools
-# Line two: curl, for downloading binaries
-# Line three: for xx-verify
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
 apt-get update && apt-get install -y \
@@ -26,17 +21,17 @@ apt-get update && apt-get install -y \
 # libssl is needed in the host architecture due to an issue with the headers
 
 # Create symlinks for LLVM tools
-RUN <<EOF
-    # clang
-    ln -s /usr/bin/clang-${LLVM_VERSION} /usr/bin/clang
-    ln -s "/usr/bin/clang++-${LLVM_VERSION}" "/usr/bin/clang++"
-    # lld
-    ln -s /usr/bin/ld64.lld-${LLVM_VERSION} /usr/bin/ld64.lld
-    ln -s /usr/bin/ld.lld-${LLVM_VERSION} /usr/bin/ld.lld
-    ln -s /usr/bin/lld-${LLVM_VERSION} /usr/bin/lld
-    ln -s /usr/bin/lld-link-${LLVM_VERSION} /usr/bin/lld-link
-    ln -s /usr/bin/wasm-ld-${LLVM_VERSION} /usr/bin/wasm-ld
-EOF
+# RUN <<EOF
+#     # clang
+#     ln -s /usr/bin/clang-${LLVM_VERSION} /usr/bin/clang
+#     ln -s "/usr/bin/clang++-${LLVM_VERSION}" "/usr/bin/clang++"
+#     # lld
+#     ln -s /usr/bin/ld64.lld-${LLVM_VERSION} /usr/bin/ld64.lld
+#     ln -s /usr/bin/ld.lld-${LLVM_VERSION} /usr/bin/ld.lld
+#     ln -s /usr/bin/lld-${LLVM_VERSION} /usr/bin/lld
+#     ln -s /usr/bin/lld-link-${LLVM_VERSION} /usr/bin/lld-link
+#     ln -s /usr/bin/wasm-ld-${LLVM_VERSION} /usr/bin/wasm-ld
+# EOF
 
 # Developer tool versions
 # renovate: datasource=github-releases depName=cargo-bins/cargo-binstall
@@ -49,39 +44,35 @@ ENV LDDTREE_VERSION=0.3.7
 # Install unpackaged tools
 RUN <<EOF
     curl --retry 5 -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
-    cargo binstall --no-confirm cargo-sbom --version $CARGO_SBOM_VERSION
     cargo binstall --no-confirm lddtree --version $LDDTREE_VERSION
+    cargo binstall --no-confirm cargo-sbom --version $CARGO_SBOM_VERSION
 EOF
 
-# Set up xx (cross-compilation scripts)
-COPY --from=xx / /
 ARG TARGETPLATFORM
 
 # Install libraries linked by the binary
 # xx-* are xx-specific meta-packages
-RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,target=/var/lib/apt,sharing=locked \
-xx-apt-get install -y \
-    xx-c-essentials xx-cxx-essentials pkg-config \
-    libsqlite3-dev libssl-dev
+# RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+#     --mount=type=cache,target=/var/lib/apt,sharing=locked \
+# xx-apt-get install -y \
+#     xx-c-essentials xx-cxx-essentials pkg-config \
+#     libsqlite3-dev libssl-dev
 
 
 # Set up Rust toolchain
 WORKDIR /app
 COPY ./rust-toolchain.toml .
-RUN rustc --version \
-    && rustup target add $(xx-cargo --print-target-triple)
 
 # Build binary
 # We disable incremental compilation to save disk space, as it only produces a minimal speedup for this case.
 RUN echo "CARGO_INCREMENTAL=0" >> /etc/environment
 
 # Configure pkg-config
-RUN <<EOF
-    echo "PKG_CONFIG_LIBDIR=/usr/lib/$(xx-info)/pkgconfig" >> /etc/environment
-    echo "PKG_CONFIG=/usr/bin/$(xx-info)-pkg-config" >> /etc/environment
-    echo "PKG_CONFIG_ALLOW_CROSS=true" >> /etc/environment
-EOF
+# RUN <<EOF
+#     echo "PKG_CONFIG_LIBDIR=/usr/lib/$(xx-info)/pkgconfig" >> /etc/environment
+#     echo "PKG_CONFIG=/usr/bin/$(xx-info)-pkg-config" >> /etc/environment
+#     echo "PKG_CONFIG_ALLOW_CROSS=true" >> /etc/environment
+# EOF
 
 # Configure cc to use clang version
 RUN <<EOF
@@ -98,16 +89,16 @@ RUN <<EOF
 EOF
 
 # Apply CPU-specific optimizations if TARGET_CPU is provided
-ARG TARGET_CPU=
-RUN <<EOF
-  set -o allexport
-  . /etc/environment
-  if [ -n "${TARGET_CPU}" ]; then
-    echo "CFLAGS='${CFLAGS} -march=${TARGET_CPU}'" >> /etc/environment
-    echo "CXXFLAGS='${CXXFLAGS} -march=${TARGET_CPU}'" >> /etc/environment
-    echo "RUSTFLAGS='${RUSTFLAGS} -C target-cpu=${TARGET_CPU}'" >> /etc/environment
-  fi
-EOF
+# ARG TARGET_CPU=
+# RUN <<EOF
+#   set -o allexport
+#   . /etc/environment
+#   if [ -n "${TARGET_CPU}" ]; then
+#     echo "CFLAGS='${CFLAGS} -march=${TARGET_CPU}'" >> /etc/environment
+#     echo "CXXFLAGS='${CXXFLAGS} -march=${TARGET_CPU}'" >> /etc/environment
+#     echo "RUSTFLAGS='${RUSTFLAGS} -C target-cpu=${TARGET_CPU}'" >> /etc/environment
+#   fi
+# EOF
 
 # Prepare output directories
 RUN mkdir /out
@@ -125,7 +116,6 @@ ENV KANIDM_BUILD_PROFILE=${KANIDM_BUILD_PROFILE:-container_generic}
 
 # Verify environment configuration
 RUN cat /etc/environment
-RUN xx-cargo --print-target-triple
 
 # Get source
 COPY . .
@@ -183,12 +173,9 @@ RUN <<EOF
 EOF
 
 FROM scratch
-
 WORKDIR /
 
 # Copy root certs for tls into image
-# You can also mount the certs from the host
-# --volume /etc/ssl/certs:/etc/ssl/certs:ro
 COPY --from=base /etc/ssl/certs /etc/ssl/certs
 
 # Copy our build
