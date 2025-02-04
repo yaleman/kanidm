@@ -192,6 +192,7 @@ itertools = "0.13.0"
 enum-iterator = "2.1.0"
 kanidmd_web_ui_shared = { path = "./server/web_ui/shared" }
 # REMOVE this
+lazy_static = "^1.5.0"
 ldap3_client = "^0.5.2"
 ldap3_proto = { version = "^0.5.2", features = ["serde"] }
 
