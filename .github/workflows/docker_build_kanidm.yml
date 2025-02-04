@@ -96,7 +96,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: kanidm-docker
+          name: kanidm-docker-${{matrix.platform_short}}
           path: /tmp/kanidm-docker-${{matrix.platform_short}}.tar
 
   kanidm_push:
@@ -113,7 +113,8 @@ jobs:
       - name: Download artifact
         uses: actions/download-artifact@v4
         with:
-          name: kanidm-docker
+          pattern: kanidm-docker-*
+          merge-multiple: true
           path: /tmp
       - name: Set up ORAS
         uses: oras-project/setup-oras@v1

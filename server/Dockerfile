@@ -18,7 +18,6 @@ apt-get update && apt-get install -y \
     curl \
     file \
     libssl-dev
-# libssl is needed in the host architecture due to an issue with the headers
 
 # Create symlinks for LLVM tools
 # RUN <<EOF
