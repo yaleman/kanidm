@@ -90,6 +90,20 @@ buildx/radiusd:
 .PHONY: buildx
 buildx: buildx/kanidmd buildx/kanidm_tools buildx/radiusd
 
+.PHONY: build/kanidm_tools
+build/kanidm:	## Build the kanidm tools container image locally
+build/kanidm:
+	@$(CONTAINER_TOOL) build $(CONTAINER_TOOL_ARGS) \
+		-f tools/Dockerfile \
+		-t $(IMAGE_BASE)/tools:$(IMAGE_VERSION) \
+		-t $(IMAGE_BASE)/tools:$(IMAGE_EXT_VERSION) \
+		--progress $(BUILDKIT_PROGRESS) \
+		--build-arg "KANIDM_BUILD_PROFILE=container_generic" \
+		--build-arg "KANIDM_FEATURES=$(KANIDM_FEATURES)" \
+		--label "com.kanidm.git-commit=$(GIT_COMMIT)" \
+		--label "com.kanidm.version=$(IMAGE_EXT_VERSION)" \
+		$(CONTAINER_BUILD_ARGS) .
+
 .PHONY: build/kanidmd
 build/kanidmd:	## Build the kanidmd docker image locally
 build/kanidmd:
