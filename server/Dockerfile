@@ -130,15 +130,14 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
             jq -r ".target_directory"))
     mkdir /out/sbin
     PACKAGE=daemon
-    xx-cargo build --locked --release \
+    cargo build --locked --release \
         -p \$PACKAGE ${KANIDM_BUILD_OPTIONS} \
         --features="${KANIDM_FEATURES}";
     BINARIES=(\$(cargo metadata --no-deps --format-version 1 | \
         jq -r ".packages[] | select(.name == \"\$PACKAGE\") | .targets[] | select( .kind | map(. == \"bin\") | any ) | .name"))
     for BINARY in "\${BINARIES[@]}"; do
         echo \$BINARY
-        xx-verify \$TARGET_DIR/$(xx-cargo   --print-target-triple)/release/\$BINARY
-        cp \$TARGET_DIR/$(xx-cargo --print-target-triple)/release/\$BINARY /out/sbin/\$BINARY
+        cp \$TARGET_DIR/release/\$BINARY /out/sbin/\$BINARY
     done
 EOF
 
