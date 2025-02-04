@@ -20,17 +20,17 @@ apt-get update && apt-get install -y \
     libssl-dev
 
 # Create symlinks for LLVM tools
-# RUN <<EOF
-#     # clang
-#     ln -s /usr/bin/clang-${LLVM_VERSION} /usr/bin/clang
-#     ln -s "/usr/bin/clang++-${LLVM_VERSION}" "/usr/bin/clang++"
-#     # lld
-#     ln -s /usr/bin/ld64.lld-${LLVM_VERSION} /usr/bin/ld64.lld
-#     ln -s /usr/bin/ld.lld-${LLVM_VERSION} /usr/bin/ld.lld
-#     ln -s /usr/bin/lld-${LLVM_VERSION} /usr/bin/lld
-#     ln -s /usr/bin/lld-link-${LLVM_VERSION} /usr/bin/lld-link
-#     ln -s /usr/bin/wasm-ld-${LLVM_VERSION} /usr/bin/wasm-ld
-# EOF
+RUN <<EOF
+    # clang
+    ln -s /usr/bin/clang-${LLVM_VERSION} /usr/bin/clang
+    ln -s "/usr/bin/clang++-${LLVM_VERSION}" "/usr/bin/clang++"
+    # lld
+    ln -s /usr/bin/ld64.lld-${LLVM_VERSION} /usr/bin/ld64.lld
+    ln -s /usr/bin/ld.lld-${LLVM_VERSION} /usr/bin/ld.lld
+    ln -s /usr/bin/lld-${LLVM_VERSION} /usr/bin/lld
+    ln -s /usr/bin/lld-link-${LLVM_VERSION} /usr/bin/lld-link
+    ln -s /usr/bin/wasm-ld-${LLVM_VERSION} /usr/bin/wasm-ld
+EOF
 
 # Developer tool versions
 # renovate: datasource=github-releases depName=cargo-bins/cargo-binstall
