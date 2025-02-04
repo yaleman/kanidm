@@ -120,7 +120,6 @@ jobs:
         uses: oras-project/setup-oras@v1
       - name: Push image to GHCR
         run: |
-          find /tmp/ -ls
           echo "${{ secrets.GITHUB_TOKEN }}" | \
             oras login -u "${{ github.actor }}" --password-stdin ghcr.io
           oras copy --from-oci-layout "/tmp/kanidm-docker-arm64.tar:devel" \
