@@ -146,12 +146,12 @@ jobs:
         working-directory: /tmp/digests
         # if: ${{ github.ref == 'refs/heads/main' }}
         run: |
-          docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") $(printf '${{ needs.set_tag_values.outputs.image_path}}:devel:devel@sha256:%s ' *)
+          docker buildx imagetools create --tag $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") $(printf '${{ needs.set_tag_values.outputs.image_path}}:devel@sha256:%s ' *)
       # - name: Create manifest list (no push)
       #   working-directory: /tmp/digests
       #   if: ${{ github.ref != 'refs/heads/main' }}
       #   run: |
-      #     docker buildx imagetools create --dry-run $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") $(printf '${{ needs.set_tag_values.outputs.image_path}}:devel:devel@sha256:%s ' *)
+      #     docker buildx imagetools create --dry-run $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") $(printf '${{ needs.set_tag_values.outputs.image_path}}:devel@sha256:%s ' *)
 
       # - name: Inspect image
       #   # if: ${{ github.ref == 'refs/heads/main' }}
