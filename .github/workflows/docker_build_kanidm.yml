@@ -122,7 +122,7 @@ jobs:
         run: |
           echo "${{ secrets.GITHUB_TOKEN }}" | \
             oras login -u "${{ github.actor }}" --password-stdin ghcr.io
-          oras copy --from-oci-layout "/tmp/kanidm-docker-arm64.tar:devel" \
+          oras copy --platform linux/arm64 --from-oci-layout "/tmp/kanidm-docker-arm64.tar:devel" \
             "ghcr.io/${{ needs.set_tag_values.outputs.owner_lc }}/kanidm:devel"
-          oras copy --from-oci-layout "/tmp/kanidm-docker-amd64.tar:devel" \
+          oras copy --platform linux/amd64 --from-oci-layout "/tmp/kanidm-docker-amd64.tar:devel" \
             "ghcr.io/${{ needs.set_tag_values.outputs.owner_lc }}/kanidm:devel"
