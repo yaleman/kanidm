@@ -32,7 +32,7 @@ jobs:
     outputs:
       owner_lc: ${{ steps.step1.outputs.OWNER_LC }}
       ref_name: ${{ steps.step2.outputs.REF_NAME }}
-      image_path: ${{ steps.image_name.outputs.IMAGE_PATH }}
+      image_path: ${{ steps.image_path.outputs.IMAGE_PATH }}
   build:
     name: Build kanidm Docker image
     strategy:
