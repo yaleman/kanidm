@@ -32,6 +32,8 @@ jobs:
         run: |
           echo "IMAGE_PATH=ghcr.io/${OWNER,,}/kanidm" >> "${GITHUB_OUTPUT}"
           echo "IMAGE_PATH=ghcr.io/${OWNER,,}/kanidm"
+        env:
+          OWNER: '${{ github.repository_owner }}'
     outputs:
       owner_lc: ${{ steps.step1.outputs.OWNER_LC }}
       ref_name: ${{ steps.step2.outputs.REF_NAME }}
