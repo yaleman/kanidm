@@ -41,7 +41,7 @@ jobs:
   build:
     name: Build kanidm Docker image
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         include:
           - runner: ubuntu-latest
