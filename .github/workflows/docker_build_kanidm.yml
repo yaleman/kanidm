@@ -98,7 +98,8 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           sbom: true
-          outputs: type=image,dest=/tmp/kanidm-docker-${{matrix.platform_short}}.tar
+          # ,dest=/tmp/kanidm-docker-${{matrix.platform_short}}.tar
+          outputs: type=image,name=${{ needs.set_tag_values.outputs.image_path}},push-by-digest=true,name-canonical=true,push=true
         env:
           SOURCE_DATE_EPOCH: ${{ env.GIT_TIMESTAMP }}
       - name: Export digest

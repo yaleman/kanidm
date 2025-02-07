@@ -232,7 +232,7 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
     done
 EOF
 
-# Generate Software Bill of Materials (SBOM)# Generate Software Bill of Materials (SBOM)
+# Generate fido-builder Software Bill of Materials (SBOM)
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/usr/local/cargo/git/db \
     bash <<EOF
