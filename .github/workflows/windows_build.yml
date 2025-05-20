@@ -19,6 +19,11 @@ concurrency:
 jobs:
   windows_build_kanidm:
     runs-on: windows-latest
+    strategy:
+      matrix:
+        rust:
+          - "latest"
+          - "1.86.0"
     steps:
       - uses: actions/checkout@v4
       - name: Install OpenSSL
@@ -27,6 +32,8 @@ jobs:
           vcpkg install openssl:x64-windows-static-md
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ matrix.rust }}
       - name: Setup sccache
         uses: mozilla-actions/sccache-action@v0.0.9
       - run: cargo build --locked -p kanidm_client -p kanidm_tools --bin kanidm
