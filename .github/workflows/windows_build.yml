@@ -24,6 +24,7 @@ jobs:
         rust:
           - "latest"
           - "1.86.0"
+      fail-fast: false
     steps:
       - uses: actions/checkout@v4
       - name: Install OpenSSL
