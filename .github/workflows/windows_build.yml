@@ -22,7 +22,7 @@ jobs:
     strategy:
       matrix:
         rust:
-          - "latest"
+          - "1.87.0"
           - "1.86.0"
       fail-fast: false
     steps:
