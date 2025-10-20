@@ -3534,7 +3534,7 @@ mod tests {
         let mut idms_prox_write = idms.proxy_write(ct).await.unwrap();
 
         let permit_success = idms_prox_write
-            .check_oauth2_authorise_permit(&ident, &consent_token, ct)
+            .check_oauth2_authorise_permit(ident, &consent_token, ct)
             .expect("Failed to perform OAuth2 permit");
 
         // == Submit the token exchange code.
