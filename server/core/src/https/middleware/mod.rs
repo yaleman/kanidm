@@ -90,7 +90,7 @@ pub async fn kopid_middleware(
                     Ok(Uuid::from_u128(id as u128))
                 }
                 None => {
-                    return Ok(Uuid::new_v4());
+                    Ok(Uuid::new_v4())
                 }
             }
         }),
