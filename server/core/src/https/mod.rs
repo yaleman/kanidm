@@ -62,6 +62,12 @@ mod v1_oauth2;
 mod v1_scim;
 mod views;
 
+#[derive(Copy, Clone, PartialEq, Eq)]
+pub(crate) enum LogEngine {
+    TracingForest,
+    OpenTelemetry,
+}
+
 #[derive(Clone)]
 pub struct ServerState {
     pub(crate) status_ref: &'static StatusActor,
@@ -76,6 +82,7 @@ pub struct ServerState {
     pub(crate) domain: String,
     // This is set to true by default, and is only false on integration tests.
     pub(crate) secure_cookies: bool,
+    pub(crate) log_engine: LogEngine,
 }
 
 impl ServerState {
@@ -248,7 +255,10 @@ pub async fn create_https_server(
         .map(Arc::new);
 
     let trusted_tcp_info_ips = config.http_client_address_info.trusted_tcp_info();
-
+    let log_engine = match config.otel_grpc_url {
+        Some(_) => LogEngine::OpenTelemetry,
+        None => LogEngine::TracingForest,
+    };
     let state = ServerState {
         status_ref,
         qe_w_ref,
@@ -260,6 +270,7 @@ pub async fn create_https_server(
         origin: config.origin,
         domain: config.domain.clone(),
         secure_cookies: config.integration_test_config.is_none(),
+        log_engine,
     };
 
     let static_routes = match config.role {
@@ -337,7 +348,10 @@ pub async fn create_https_server(
         // This is because the last middleware here is the first to be entered and the last
         // to be exited, and this middleware sets up ids' and other bits for for logging
         // coherence to be maintained.
-        .layer(from_fn(middleware::kopid_middleware))
+        .layer(from_fn_with_state(
+            state.clone(),
+            middleware::kopid_middleware,
+        ))
         .merge(apidocs::router())
         // Apply Request Timeouts
         .layer(TimeoutLayer::with_status_code(

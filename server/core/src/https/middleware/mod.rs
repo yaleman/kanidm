@@ -1,5 +1,6 @@
-use crate::https::extractors::ClientConnInfo;
+use crate::https::errors::WebError;
 use crate::https::ServerState;
+use crate::https::{extractors::ClientConnInfo, LogEngine};
 use axum::{
     body::Body,
     extract::{connect_info::ConnectInfo, State},
@@ -11,6 +12,7 @@ use axum::{
 };
 use kanidm_proto::constants::{KOPID, KVERSION, X_FORWARDED_FOR};
 use std::net::IpAddr;
+use tracing::Subscriber;
 use uuid::Uuid;
 
 #[allow(clippy::declare_interior_mutable_const)]
@@ -64,9 +66,40 @@ pub struct KOpId {
 
 /// This runs at the start of the request, adding an extension with `KOpId` which has useful things inside it.
 #[instrument(level = "trace", name = "kopid_middleware", skip_all)]
-pub async fn kopid_middleware(mut request: Request<Body>, next: Next) -> Response {
-    // generate the event ID
-    let eventid = sketching::tracing_forest::id();
+pub async fn kopid_middleware(
+    State(state): State<ServerState>,
+    mut request: Request<Body>,
+    next: Next,
+) -> Response {
+    let eventid = match state.log_engine {
+        LogEngine::TracingForest => Ok(sketching::tracing_forest::id()),
+        LogEngine::OpenTelemetry => tracing::dispatcher::get_default(|dispatch| {
+            let Some(subscriber) =
+                dispatch.downcast_ref::<sketching::tracing_subscriber::Registry>()
+            else {
+                return Err(WebError::InternalServerError(
+                    "Failed to identify the logging subscriber!".to_string(),
+                )
+                .into_response());
+            };
+            let current = subscriber.current_span();
+            // if we're in a span, use that span id as the event id
+            match current.id() {
+                Some(id) => {
+                    let id = id.into_u64();
+                    Ok(Uuid::from_u128(id as u128))
+                }
+                None => {
+                    return Ok(Uuid::new_v4());
+                }
+            }
+        }),
+    };
+
+    let eventid = match eventid {
+        Ok(val) => val,
+        Err(err_response) => return err_response,
+    };
 
     // insert the extension so we can pull it out later
     request.extensions_mut().insert(KOpId { eventid });
