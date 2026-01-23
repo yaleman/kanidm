@@ -2748,6 +2748,8 @@ dependencies = [
 [[package]]
 name = "haproxy-protocol"
 version = "0.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "758f6e6f705a5bd9ff33046c686b474909cb903e0c28042f4de630dfe1571867"
 dependencies = [
  "hex",
  "nom 8.0.0",
