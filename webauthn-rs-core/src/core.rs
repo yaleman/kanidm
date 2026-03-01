@@ -1210,7 +1210,8 @@ impl WebauthnCore {
 
                     let valid = match (ccd_host, cnf_host) {
                         (url::Host::Domain(ccd_domain), url::Host::Domain(cnf_domain)) => {
-                            ccd_domain.ends_with(&cnf_domain)
+                            ccd_domain == cnf_domain
+                                || ccd_domain.ends_with(&format!(".{}", cnf_domain))
                         }
                         (a, b) => a == b,
                     };
@@ -3681,6 +3682,51 @@ mod tests {
             false,
             &Url::parse("ios:bundle-id:com.foo.bar").unwrap(),
             &Url::parse("ios:bundle-id:com.foo.baz").unwrap(),
+        ));
+    }
+
+    #[test]
+    fn test_origin_subdomain_suffix_boundary() {
+        let configured = Url::parse("https://example.com").unwrap();
+
+        // Legitimate subdomain must be accepted
+        assert!(Webauthn::origins_match(
+            true,
+            false,
+            &Url::parse("https://sub.example.com").unwrap(),
+            &configured,
+        ));
+
+        // Deep subdomain must be accepted
+        assert!(Webauthn::origins_match(
+            true,
+            false,
+            &Url::parse("https://a.b.example.com").unwrap(),
+            &configured,
+        ));
+
+        // Evil prefix without dot boundary must be rejected
+        assert!(!Webauthn::origins_match(
+            true,
+            false,
+            &Url::parse("https://evilexample.com").unwrap(),
+            &configured,
+        ));
+
+        // Hyphenated evil prefix must be rejected
+        assert!(!Webauthn::origins_match(
+            true,
+            false,
+            &Url::parse("https://evil-example.com").unwrap(),
+            &configured,
+        ));
+
+        // Concatenated evil prefix must be rejected
+        assert!(!Webauthn::origins_match(
+            true,
+            false,
+            &Url::parse("https://notexample.com").unwrap(),
+            &configured,
         ));
     }
 
