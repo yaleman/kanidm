@@ -271,7 +271,7 @@ where
         //      Is not present
         //          Set options.rp.id to effectiveDomain.
 
-        if !(effective_domain == &options.rp.id
+        if !(effective_domain == options.rp.id
             || effective_domain.ends_with(&format!(".{}", &options.rp.id)))
         {
             error!("relying party id domain is not a suffix of the effective domain.");
@@ -334,7 +334,7 @@ where
         //      Is not present
         //          Set options.rp.id to effectiveDomain.
 
-        if !(effective_domain == &options.rp_id
+        if !(effective_domain == options.rp_id
             || effective_domain.ends_with(&format!(".{}", &options.rp_id)))
         {
             error!("relying party id domain is not suffix of effective domain.");
