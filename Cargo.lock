@@ -4011,7 +4011,7 @@ dependencies = [
  "kanidm_client",
  "kanidm_proto",
  "libc",
- "serde",
+ "rlm_kanidm_shared",
  "tokio",
  "toml",
  "tracing",
@@ -6169,14 +6169,20 @@ version = "1.10.0-dev"
 dependencies = [
  "anyhow",
  "bindgen 0.72.1",
- "clap",
  "kanidm_client",
  "kanidm_proto",
  "libc",
- "serde",
+ "rlm_kanidm_shared",
  "tokio",
  "toml",
  "tracing",
+]
+
+[[package]]
+name = "rlm_kanidm_shared"
+version = "1.10.0-dev"
+dependencies = [
+ "serde",
 ]
 
 [[package]]
