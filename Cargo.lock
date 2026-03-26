@@ -6172,6 +6172,7 @@ dependencies = [
  "rlm_kanidm_shared",
  "tokio",
  "tracing",
+ "url",
 ]
 
 [[package]]
