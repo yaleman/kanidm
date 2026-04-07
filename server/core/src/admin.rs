@@ -285,7 +285,7 @@ async fn show_replication_certificate_metadata(
                     .into_iter()
                     .map(|attr| format!("{}", attr))
                     .collect::<Vec<_>>()
-                    .join(", ");
+                    .join(",");
 
                 let expired = cert_not_after.to_system_time() < std::time::SystemTime::now();
                 AdminTaskResponse::ShowReplicationCertificateMetadata {
