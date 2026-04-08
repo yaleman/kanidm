@@ -278,14 +278,7 @@ async fn show_replication_certificate_metadata(
             Ok(Ok(cert)) => {
                 let cert_not_after = cert.tbs_certificate.validity.not_after;
                 let cert_not_before = cert.tbs_certificate.validity.not_before;
-                let subject = cert
-                    .tbs_certificate
-                    .subject
-                    .0
-                    .into_iter()
-                    .map(|attr| format!("{}", attr))
-                    .collect::<Vec<_>>()
-                    .join(",");
+                let subject = cert.tbs_certificate.subject.to_string();
 
                 let expired = cert_not_after.to_system_time() < std::time::SystemTime::now();
                 AdminTaskResponse::ShowReplicationCertificateMetadata {
