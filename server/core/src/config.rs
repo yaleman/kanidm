@@ -456,7 +456,7 @@ pub struct Configuration {
 }
 
 impl Configuration {
-    pub fn new() -> ConfigurationBuilder {
+    pub fn builder() -> ConfigurationBuilder {
         ConfigurationBuilder {
             bindaddress: None,
             ldapbindaddress: None,

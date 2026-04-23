@@ -710,7 +710,7 @@ fn main() -> ExitCode {
 
     let is_server = matches!(&opt.commands, KanidmdOpt::Server);
 
-    let config = Configuration::new()
+    let config = Configuration::builder()
         .add_opt_toml_config(maybe_sconfig)
         .add_cli_config(&opt.kanidmd_options)
         // set threads to 1 unless it's the main server.
