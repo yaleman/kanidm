@@ -456,7 +456,7 @@ pub struct Configuration {
 }
 
 impl Configuration {
-    pub fn build() -> ConfigurationBuilder {
+    pub fn new() -> ConfigurationBuilder {
         ConfigurationBuilder {
             bindaddress: None,
             ldapbindaddress: None,
@@ -957,9 +957,9 @@ impl ConfigurationBuilder {
         self
     }
 
-    // We always set threads to 1 unless it's the main server.
-    pub fn is_server_mode(mut self, is_server: bool) -> Self {
-        if is_server {
+    /// Set thread count to 1 if it's not in server mode.
+    pub fn set_threads(mut self, is_server: bool) -> Self {
+        if !is_server {
             self.threads = 1;
         }
         self
