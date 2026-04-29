@@ -2,7 +2,6 @@
 #![warn(unused_extern_crates)]
 #![deny(clippy::todo)]
 #![deny(clippy::unimplemented)]
-// In this file, we do want to panic on these faults.
 #![deny(clippy::unwrap_used)]
 #![deny(clippy::expect_used)]
 #![deny(clippy::panic)]
@@ -11,6 +10,13 @@
 #![deny(clippy::needless_pass_by_value)]
 #![deny(clippy::trivially_copy_pass_by_ref)]
 
-use pam_sparkle_common::{pam_hooks, PamSparkle};
+#[cfg(target_family = "unix")]
+mod hooks;
 
-pam_hooks!(PamSparkle);
+#[cfg(target_family = "unix")]
+pub(crate) mod core;
+
+pub use hooks::{SparkleGroup, SparklePasswd};
+
+#[cfg(test)]
+mod tests;

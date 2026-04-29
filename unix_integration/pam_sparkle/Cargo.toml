@@ -1,6 +1,6 @@
 [package]
-name = "nss_kanidm"
-description = "Kanidm NSS module"
+name = "pam_sparkle"
+description = "Sparkle PAM module"
 
 version = { workspace = true }
 authors = { workspace = true }
@@ -11,35 +11,37 @@ homepage = { workspace = true }
 repository = { workspace = true }
 
 [lib]
-name = "nss_kanidm"
+name = "pam_sparkle"
 crate-type = ["cdylib"]
 path = "src/lib.rs"
 
 [dependencies]
-nss_sparkle_common = { workspace = true }
+pam_sparkle_common = { workspace = true }
 
-[target.'cfg(not(target_family = "windows"))'.dependencies]
-libnss = { workspace = true }
-libc = { workspace = true }
-
-[target."cfg(target_os = \"freebsd\")".build-dependencies]
-cc = "^1.2.61"
+[build-dependencies]
+pkg-config = { workspace = true }
 
 ## Debian packaging
 [package.metadata.deb]
-name = "libnss-kanidm"
+name = "libpam-sparkle"
 maintainer = "James Hodgkinson <james@terminaloutcomes.com>"
-depends = ""
+depends = ["libc6", "libpam0g"]
 section = "network"
 priority = "optional"
+maintainer-scripts = "debian/"
 assets = [
     [
-        "target/release/libnss_kanidm.so",
+        "target/release/libpam_sparkle.so",
         # This is not the final path as cargo-deb needs to be run with --multiarch=foreign
-        "usr/lib/libnss_kanidm.so.2",
+        "usr/lib/security/pam_sparkle.so",
+        "644",
+    ],
+    [
+        "debian/sparkle.pam",
+        "usr/share/pam-configs/sparkle",
         "644",
     ],
 ]
 
 [package.metadata.cargo-machete]
-ignored = ["cc"]
+ignored = ["pkg-config"]

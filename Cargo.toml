@@ -20,9 +20,14 @@ members = [
     "tools/iam_migrations/ldap",
     "tools/orca",
     "unix_integration/common",
+    "unix_integration/nss_sparkle_common",
     "unix_integration/nss_kanidm",
+    "unix_integration/nss_sparkle",
+    "unix_integration/pam_sparkle_common",
     "unix_integration/pam_kanidm",
-    "unix_integration/resolver",
+    "unix_integration/pam_sparkle",
+    "unix_integration/resolver_common",
+    "unix_integration/resolver_kanidm",
     "server/daemon",
     "server/lib",
     "server/lib-macros",
@@ -130,8 +135,11 @@ kanidm_client = { path = "./libs/client", version = "=1.10.0-dev" }
 kanidm_lib_crypto = { path = "./libs/crypto", version = "=1.10.0-dev" }
 kanidm_lib_file_permissions = { path = "./libs/file_permissions", version = "=1.10.0-dev" }
 kanidm_proto = { path = "./proto", version = "=1.10.0-dev" }
-kanidm_unix_common = { path = "./unix_integration/common", version = "=1.10.0-dev" }
 kanidm_utils_users = { path = "./libs/users", version = "=1.10.0-dev" }
+nss_sparkle_common = { path = "./unix_integration/nss_sparkle_common", version = "=1.10.0-dev" }
+pam_sparkle_common = { path = "./unix_integration/pam_sparkle_common", version = "=1.10.0-dev" }
+sparkle_unix_common = { path = "./unix_integration/common", version = "=1.10.0-dev" }
+sparkle_resolver_common = { path = "./unix_integration/resolver_common", version = "=1.10.0-dev" }
 scim_proto = { path = "./libs/scim_proto", version = "=1.10.0-dev" }
 sketching = { path = "./libs/sketching", version = "=1.10.0-dev" }
 
@@ -181,7 +189,7 @@ fs4 = "^1.0.2"
 futures = "^0.3.32"
 futures-util = { version = "^0.3.32", features = ["sink"] }
 gethostname = "1.1.0"
-gix = { version = "0.82.0", default-features = false, features = ["sha1"] }
+gix = { version = "0.83.0", default-features = false, features = ["sha1"] }
 haproxy-protocol = { version = "0.0.4" }
 hashbrown = { version = "0.17.0", features = ["serde", "inline-more"] }
 hex = "^0.4.3"
