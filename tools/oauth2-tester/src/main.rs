@@ -2,17 +2,15 @@ use askama::Template;
 use askama_web::WebTemplate;
 use axum::middleware;
 use axum::response::Html;
-use axum::response::{IntoResponse, Response};
 use axum::routing::get;
 use axum::Router;
 use clap::Parser;
 use openidconnect::reqwest;
 use std::net::SocketAddr;
 use std::sync::Arc;
-use tower_http::services::{ServeDir, ServeFile};
 use tower_sessions::cookie::{Key, SameSite};
 use tower_sessions::{Expiry, MemoryStore, SessionManagerLayer};
-use tracing::{debug, error, info};
+use tracing::{debug};
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::{fmt, EnvFilter};
@@ -24,8 +22,8 @@ mod auth_oidc;
 #[template(path = "index.html")]
 struct IndexView {}
 
-async fn index_view() -> Response {
-    IndexView {}.into_response()
+async fn index_view() -> IndexView {
+    IndexView{}
 }
 
 async fn status_view() -> Html<&'static str> {

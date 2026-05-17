@@ -13,9 +13,9 @@ use axum::{
 use chrono::{DateTime, Utc};
 use openidconnect::{
     core::{CoreAuthenticationFlow, CoreClient, CoreProviderMetadata},
-    reqwest, AccessToken, AuthorizationCode, Client, ClientId, ClientSecret, CsrfToken,
-    EndpointMaybeSet, EndpointNotSet, EndpointSet, IssuerUrl, Nonce, OAuth2TokenResponse,
-    PkceCodeChallenge, PkceCodeVerifier, RedirectUrl, RefreshToken, Scope, TokenResponse,
+    reqwest, AccessToken, AuthorizationCode, ClientId, ClientSecret, CsrfToken, EndpointMaybeSet,
+    EndpointNotSet, EndpointSet, IssuerUrl, Nonce, OAuth2TokenResponse, PkceCodeChallenge,
+    PkceCodeVerifier, RedirectUrl, RefreshToken, Scope, TokenResponse,
 };
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
@@ -39,7 +39,7 @@ pub(crate) async fn middleware(
     mut request: Request<Body>,
     next: Next,
 ) -> Response {
-    let session = (&request).extensions().get::<Session>().unwrap();
+    let session = (request).extensions().get::<Session>().unwrap();
     let maybe_user_token: Option<User> = { session.get("token").await.unwrap() };
 
     let uwu_senpai_redir_me_pls = request
@@ -85,7 +85,7 @@ pub(crate) async fn middleware(
 
         let r_token = state
             .oidc
-            .exchange_refresh_token(&refresh_token)
+            .exchange_refresh_token(refresh_token)
             .expect("Unable to proceed with exchange")
             .request_async(&state.async_http_client)
             .await;
@@ -122,13 +122,11 @@ pub(crate) async fn middleware(
 
         let user = User {
             sub: claims.subject().as_str().to_owned(),
-            /*
-            // I'm not actually sure it's possible to access this claim .... :(
-            displayname: claims.name()
-                .unwrap()
-                ,
-            */
-            // email: claims.email().unwrap().as_str().to_owned(),
+            displayname: claims
+                .name()
+                .and_then(|n| n.iter().next().map(|(_, s)| s.to_string())),
+
+            email: claims.email().map(|e| e.as_str().to_owned()),
             username: claims.preferred_username().unwrap().as_str().to_owned(),
             exp: claims.expiration(),
             access_token: token.access_token().to_owned(),
@@ -137,7 +135,7 @@ pub(crate) async fn middleware(
 
         if let Err(e) = session.insert("token", user).await {
             error!(?e, "Failed to setup request session");
-            return StatusCode::INTERNAL_SERVER_ERROR.into_response();
+            StatusCode::INTERNAL_SERVER_ERROR.into_response()
         } else {
             // New token valid, run the request.
             next.run(request).await
@@ -150,10 +148,10 @@ pub(crate) async fn middleware(
 
 #[derive(Template, WebTemplate)]
 #[template(path = "oidc.html")]
-struct LoginView {}
+pub(crate) struct LoginView {}
 
-pub async fn login_view(State(state): State<Arc<AppState>>, session: Session) -> Response {
-    LoginView {}.into_response()
+pub async fn login_view() -> LoginView {
+    LoginView {}
 }
 
 #[derive(Deserialize, Debug)]
@@ -167,7 +165,7 @@ pub(crate) async fn login_post(
     State(state): State<Arc<AppState>>,
     session: Session,
     Form(form_data): Form<FormLoginOptions>,
-) -> Result<Response, StatusCode> {
+) -> Result<Redirect, StatusCode> {
     let (pkce_code_challenge, pkce_code_verifier) = PkceCodeChallenge::new_random_sha256();
 
     trace!(?session);
@@ -206,7 +204,7 @@ pub(crate) async fn login_post(
 
     info!("starting oauth");
 
-    Ok(Redirect::to(auth_url.as_str()).into_response())
+    Ok(Redirect::to(auth_url.as_str()))
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -218,8 +216,8 @@ pub(crate) struct OauthResp {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct User {
     sub: String,
-    // displayname: String,
-    // email: String,
+    displayname: Option<String>,
+    email: Option<String>,
     username: String,
     exp: DateTime<Utc>,
     access_token: AccessToken,
@@ -302,13 +300,10 @@ pub(crate) async fn response_view(
 
     let user = User {
         sub: claims.subject().as_str().to_owned(),
-        /*
-        // I'm not actually sure it's possible to access this claim .... :(
-        displayname: claims.name()
-            .unwrap()
-            ,
-        */
-        // email: claims.email().unwrap().as_str().to_owned(),
+        displayname: claims
+            .name()
+            .and_then(|n| n.iter().next().map(|(_, s)| s.to_string())),
+        email: claims.email().map(|e| e.as_str().to_owned()),
         username: claims.preferred_username().unwrap().as_str().to_owned(),
         exp: claims.expiration(),
         access_token: token.access_token().to_owned(),
