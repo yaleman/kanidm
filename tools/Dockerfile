@@ -6,7 +6,7 @@ FROM ${BASE_IMAGE} AS repos
 ADD ../scripts/zypper_fixing.sh /zypper_fixing.sh
 RUN --mount=type=cache,id=zypp,target=/var/cache/zypp /zypper_fixing.sh
 
-FROM repos AS builder
+FROM repos AS build_base
 ARG KANIDM_FEATURES
 ARG KANIDM_BUILD_PROFILE
 ARG KANIDM_BUILD_OPTIONS=""
@@ -30,6 +30,25 @@ RUN \
         libudev-devel \
         sqlite3-devel \
         rsync
+
+FROM build_base AS fido_mds_builder
+
+RUN \
+    --mount=type=cache,id=fido-cargo,target=/cargo \
+    --mount=type=cache,id=fido-sccache,target=/sccache \
+    --mount=type=cache,id=fido-target,target=/target \
+    export CARGO_HOME=/cargo; \
+    export SCCACHE_DIR=/sccache; \
+    export RUSTC_WRAPPER=/usr/bin/sccache; \
+    export CC="/usr/bin/clang"; \
+    cargo auditable install \
+        --git https://github.com/kanidm/webauthn-rs.git \
+        --rev 2ac5ff0e20f323cd904856a38a15899adf13fa5b \
+        --root /out \
+        --target-dir=/target \
+        fido-mds-tool
+
+FROM build_base AS builder
 
 COPY . /usr/src/kanidm
 
@@ -59,11 +78,6 @@ RUN \
         --target-dir="/usr/src/kanidm/target/" \
         --features="${KANIDM_FEATURES}" \
         --release && \
-    cargo auditable install \
-        --git https://github.com/kanidm/webauthn-rs.git \
-        --rev 2ac5ff0e20f323cd904856a38a15899adf13fa5b \
-        --force fido-mds-tool \
-        --target-dir="/usr/src/kanidm/target/" && \
     sccache -s
 
 # == Construct the tools container
@@ -81,7 +95,7 @@ COPY --from=builder /usr/src/kanidm/target/release/kanidm /sbin/
 COPY --from=builder /usr/src/kanidm/target/release/kanidm-ipa-sync /sbin/
 COPY --from=builder /usr/src/kanidm/target/release/kanidm-ldap-sync /sbin/
 COPY --from=builder /usr/src/kanidm/target/release/kanidm-mail-sender /sbin/
-COPY --from=builder /usr/src/kanidm/target/release/fido-mds-tool /sbin/
+COPY --from=fido_mds_builder /out/bin/fido-mds-tool /sbin/
 RUN chmod +x /sbin/kanidm
 RUN chmod +x /sbin/kanidm-ipa-sync
 RUN chmod +x /sbin/kanidm-ldap-sync
